@@ -1,2 +1,4 @@
 github.com/lionsoul2014/ip2region/binding/golang v0.0.0-20261008081544-02f04aa559ac h1:QzJvikmi/EVRBnoRfXJKs+DgS6NsdG1oQIZKXszGOJ8=
 github.com/lionsoul2014/ip2region/binding/golang v0.0.0-20261008081544-02f04aa559ac/go.mod h1:sj5LMpsqB4IWdwIrcmmBJM6m+rW/uOQLSGUPhKkqdh8=
+github.com/mssola/useragent v1.0.0 h1:WRlDpXyxHDNfvZaPEut5Biveq86Ze4o4EMffyMxmH5o=
+github.com/mssola/useragent v1.0.0/go.mod h1:hz9Cqz4RXusgg1EdI4Al0INR62kP7aPSRNHnpU+b85Y=
