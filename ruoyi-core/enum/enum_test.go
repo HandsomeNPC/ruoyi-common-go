@@ -1,10 +1,7 @@
 package enum
 
 import (
-	"context"
 	"testing"
-
-	"github.com/HandsomeNPC/ruoyi-common-go/ruoyi-core/i18n"
 )
 
 // TestEnumValues 锚定全部枚举取值。
@@ -88,25 +85,19 @@ func TestParseUserTypeFromLoginID(t *testing.T) {
 
 // TestLoginTypeMessages 验证提示文案按登录方式渲染。
 func TestLoginTypeMessages(t *testing.T) {
-	zh := i18n.NewContext(context.Background(), i18n.LocaleZhCN)
-	en := i18n.NewContext(context.Background(), i18n.LocaleEnUS)
-
 	countCases := []struct {
 		name string
 		lt   LoginType
-		ctx  context.Context
 		n    int
 		want string
 	}{
-		{"密码-中文", LoginTypePassword, zh, 3, "密码输入错误3次"},
-		{"密码-英文", LoginTypePassword, en, 3, "Password input error 3 times"},
-		{"短信-中文", LoginTypeSms, zh, 2, "短信验证码输入错误2次"},
-		{"短信-英文", LoginTypeSms, en, 2, "Sms code input error 2 times"},
-		{"邮箱-中文", LoginTypeEmail, zh, 1, "邮箱验证码输入错误1次"},
+		{"密码", LoginTypePassword, 3, "密码输入错误3次"},
+		{"短信", LoginTypeSms, 2, "短信验证码输入错误2次"},
+		{"邮箱", LoginTypeEmail, 1, "邮箱验证码输入错误1次"},
 	}
 	for _, c := range countCases {
 		t.Run(c.name, func(t *testing.T) {
-			if got := c.lt.RetryCountMsg(c.ctx, c.n); got != c.want {
+			if got := c.lt.RetryCountMsg(c.n); got != c.want {
 				t.Errorf("RetryCountMsg = %q, want %q", got, c.want)
 			}
 		})
@@ -115,51 +106,26 @@ func TestLoginTypeMessages(t *testing.T) {
 	exceedCases := []struct {
 		name              string
 		lt                LoginType
-		ctx               context.Context
 		maxRetry, lockMin int
 		want              string
 	}{
-		{"密码-中文", LoginTypePassword, zh, 5, 10, "密码输入错误5次，账户锁定10分钟"},
-		{"密码-英文", LoginTypePassword, en, 5, 10, "Password input error 5 times, account locked for 10 minutes"},
-		{"邮箱-中文", LoginTypeEmail, zh, 5, 10, "邮箱验证码输入错误5次，账户锁定10分钟"},
-		{"邮箱-英文", LoginTypeEmail, en, 5, 10, "Email code input error 5 times, account locked for 10 minutes"},
+		{"密码", LoginTypePassword, 5, 10, "密码输入错误5次，账户锁定10分钟"},
+		{"邮箱", LoginTypeEmail, 5, 10, "邮箱验证码输入错误5次，账户锁定10分钟"},
 	}
 	for _, c := range exceedCases {
 		t.Run("exceed/"+c.name, func(t *testing.T) {
-			if got := c.lt.RetryExceedMsg(c.ctx, c.maxRetry, c.lockMin); got != c.want {
+			if got := c.lt.RetryExceedMsg(c.maxRetry, c.lockMin); got != c.want {
 				t.Errorf("RetryExceedMsg = %q, want %q", got, c.want)
 			}
 		})
 	}
 
 	for _, lt := range []LoginType{LoginTypeSocial, LoginTypeXcx} {
-		if got := lt.RetryCountMsg(zh, 1); got != "" {
+		if got := lt.RetryCountMsg(1); got != "" {
 			t.Errorf("%s.RetryCountMsg = %q, want 空串", lt.Code, got)
 		}
-		if got := lt.RetryExceedMsg(zh, 5, 10); got != "" {
+		if got := lt.RetryExceedMsg(5, 10); got != "" {
 			t.Errorf("%s.RetryExceedMsg = %q, want 空串", lt.Code, got)
-		}
-	}
-
-	if got := LoginTypePassword.RetryCountMsg(context.Background(), 3); got != "密码输入错误3次" {
-		t.Errorf("无语言 context 时 RetryCountMsg = %q, 应回落中文", got)
-	}
-}
-
-// TestLoginTypeKeysExistInCatalog 验证词条键存在于词条表。
-func TestLoginTypeKeysExistInCatalog(t *testing.T) {
-	ctx := i18n.NewContext(context.Background(), i18n.LocaleZhCN)
-	for _, lt := range LoginTypes() {
-		for name, key := range map[string]string{
-			"RetryCountKey":  lt.RetryCountKey,
-			"RetryExceedKey": lt.RetryExceedKey,
-		} {
-			if key == "" {
-				continue
-			}
-			if got := i18n.Msg(ctx, key); got == key {
-				t.Errorf("%s.%s = %q 在词条表里不存在（Msg 原样返回了键）", lt.Code, name, key)
-			}
 		}
 	}
 }

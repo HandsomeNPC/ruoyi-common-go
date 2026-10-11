@@ -6,8 +6,6 @@ import (
 	"time"
 
 	"github.com/spf13/viper"
-
-	"github.com/HandsomeNPC/ruoyi-common-go/ruoyi-core/i18n"
 )
 
 // TraceIDHeader 读写链路 id 的请求/响应头名。
@@ -197,43 +195,6 @@ func (r RepeatableBodyConfig) SetDefaults(v *viper.Viper) {
 func (r RepeatableBodyConfig) Validate() error {
 	if r.MaxBodySize < 0 {
 		return fmt.Errorf("repeatableBody.maxBodySize 不能为负数")
-	}
-	return nil
-}
-
-// LocaleHeader 解析语言的请求头名。
-const LocaleHeader = "content-language"
-
-// I18nConfig 国际化中间件配置。
-type I18nConfig struct {
-	// Header 解析语言的请求头名，为空表示用 LocaleHeader。
-	Header string `mapstructure:"header"`
-
-	// Default 请求未指定语言、或语言标记不合规时使用的语言，为空表示用 i18n.DefaultLocale。
-	Default i18n.Locale `mapstructure:"default"`
-}
-
-// DefaultI18n 返回国际化默认配置。
-func DefaultI18n() I18nConfig {
-	return I18nConfig{
-		Header:  LocaleHeader,
-		Default: i18n.DefaultLocale,
-	}
-}
-
-// SetDefaults 把默认值铺给 viper。
-func (i I18nConfig) SetDefaults(v *viper.Viper) {
-	v.SetDefault("i18n.header", i.Header)
-	v.SetDefault("i18n.default", string(i.Default))
-}
-
-// Validate 校验国际化配置。
-func (i I18nConfig) Validate() error {
-	if i.Default == "" {
-		return nil
-	}
-	if _, ok := i18n.Parse(string(i.Default)); !ok {
-		return fmt.Errorf("i18n.default 不是合法的语言标记")
 	}
 	return nil
 }

@@ -29,12 +29,9 @@
 | `LoginType.Code`  | Java 无此字段               | Java 靠 enum 实例本身传递，Go 需要标识按 grantType 查表               |
 | `LoginTypeSocial` | Java 只有 4 个值，无 social | Code 是查表键，须覆盖全部 5 种 grantType；Java 能少是因 social 无文案 |
 
-`LoginType` 的两个文案字段存的是 **词条键**（`user.password.retry.limit.count` 等），与 Java 的
-`retryLimitCount` / `retryLimitExceed` 一致，渲染走 `pkg/i18n`，故方法签名带 `context.Context`
-（语言由 i18n 中间件写进 context）。曾经这里存的是中文模板 —— 那会让同一批文案在仓库里存两份副本， 而 `pkg/i18n` 那份有与原项目
-`.properties` 的逐条交叉验证兜着、这份没有，两者能对上只能靠巧合。
-`TestLoginTypeKeysExistInCatalog` 现在把键与词条表钉在一起：键是手写字符串，拼错不会有编译错误， 而 `i18n.Msg`
-对缺失键返回键本身 —— 表现出来就是前端收到一串 `user.password.retry.limit.countt`。
+`LoginType` 的两个文案字段存的是 **提示模板**（`密码输入错误%v次` 等），渲染直接 `fmt.Sprintf`， 故方法签名不带
+`context.Context`。曾经这里存的是 i18n 词条键、走 `pkg/i18n` 渲染—— i18n 包现已移除（设计不佳，待重新设计），文案改为内联中文模板。
+`TestLoginTypeMessages` 把模板与渲染 结果钉在一起，拼错占位符会在测试阶段暴露。
 
 ## 关于 var
 

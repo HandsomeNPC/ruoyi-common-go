@@ -46,7 +46,7 @@ const maxFingerprintBody = 1 << 20 // 1MB
 
 type options struct {
 	interval time.Duration // 防重间隔
-	message  string        // 触发时的 i18n 词条
+	message  string        // 触发时的提示文案
 }
 
 // newOptions 构造防重配置。interval 为 0 取默认值，message 为空取默认词条；interval < 1 秒 panic。
