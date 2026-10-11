@@ -13,7 +13,7 @@ import (
 	goredis "github.com/redis/go-redis/v9"
 	"golang.org/x/sync/singleflight"
 
-	"github.com/HandsomeNPC/ruoyi-common-go/ruoyi-core/redis"
+	"github.com/HandsomeNPC/ruoyi-common-go/redis"
 
 	"github.com/HandsomeNPC/ruoyi-common-go/jsonx"
 )

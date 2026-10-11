@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/HandsomeNPC/ruoyi-common-go/redis"
 	"github.com/HandsomeNPC/ruoyi-common-go/ruoyi-core/cache"
 	"github.com/HandsomeNPC/ruoyi-common-go/ruoyi-core/constant"
-	pkgredis "github.com/HandsomeNPC/ruoyi-common-go/ruoyi-core/redis"
 )
 
 // ErrConfigNotFound 配置键对应的配置不在缓存里。
@@ -26,7 +26,7 @@ var (
 
 // InstanceDefault 取当前默认配置的客户端，供上传用。
 func InstanceDefault(ctx context.Context) (*Client, error) {
-	configKey, err := pkgredis.Client().Get(ctx, constant.OssDefaultConfigKey).Result()
+	configKey, err := redis.Client().Get(ctx, constant.OssDefaultConfigKey).Result()
 	if err != nil || configKey == "" {
 		return nil, ErrDefaultConfigNotSet
 	}

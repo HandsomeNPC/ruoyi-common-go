@@ -7,9 +7,9 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/HandsomeNPC/ruoyi-common-go/redis"
 	"github.com/HandsomeNPC/ruoyi-common-go/ruoyi-core/constant"
 	domain "github.com/HandsomeNPC/ruoyi-common-go/ruoyi-core/domain"
-	pkgredis "github.com/HandsomeNPC/ruoyi-common-go/ruoyi-core/redis"
 
 	"github.com/HandsomeNPC/ruoyi-common-go/jsonx"
 )
@@ -39,7 +39,7 @@ var (
 )
 
 // Init 按传入的 PushConfig 构建包级推送管理器并订阅 Redis 消息主题。
-// 依赖 pkg/redis，须在 redis.Init() 之后调用。
+// 依赖 redis，须在 redis.Init() 之后调用。
 func Init(cfg PushConfig) {
 	if !cfg.Enabled {
 		log.Printf("[push] 消息推送已关闭")
@@ -111,7 +111,7 @@ func Publish(ctx context.Context, dto PushDTO) error {
 	if err != nil {
 		return fmt.Errorf("push: 序列化推送消息失败: %w", err)
 	}
-	if err := pkgredis.Client().Publish(ctx, constant.MessageTopic, payload).Err(); err != nil {
+	if err := redis.Client().Publish(ctx, constant.MessageTopic, payload).Err(); err != nil {
 		return fmt.Errorf("push: 发布推送消息失败: %w", err)
 	}
 	return nil
@@ -134,7 +134,7 @@ func (m *Manager) subscribe() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	sub := pkgredis.Client().Subscribe(ctx, constant.MessageTopic)
+	sub := redis.Client().Subscribe(ctx, constant.MessageTopic)
 	// ctx 取消只管 SUBSCRIBE 的建立，收不到消息流；真正终止循环的是 sub.Close()。
 	// 不能只依赖这里的 defer——它在 range 循环退出后才执行，而循环恰恰被卡在
 	// sub.Channel() 上不退出。故另起 goroutine 监听 stop 主动关掉订阅。

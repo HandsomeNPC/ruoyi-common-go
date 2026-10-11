@@ -26,8 +26,8 @@ import (
 	"github.com/mojocn/base64Captcha"
 	goredis "github.com/redis/go-redis/v9"
 
+	"github.com/HandsomeNPC/ruoyi-common-go/redis"
 	"github.com/HandsomeNPC/ruoyi-common-go/ruoyi-core/constant"
-	"github.com/HandsomeNPC/ruoyi-common-go/ruoyi-core/redis"
 )
 
 // 图片渲染参数。

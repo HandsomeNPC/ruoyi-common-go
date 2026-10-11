@@ -7,15 +7,15 @@ import (
 
 	"github.com/sa-tokens/sa-token-go/core/listener"
 	sagin "github.com/sa-tokens/sa-token-go/integrations/gin"
-	"github.com/sa-tokens/sa-token-go/storage/redis"
+	saredis "github.com/sa-tokens/sa-token-go/storage/redis"
 
+	"github.com/HandsomeNPC/ruoyi-common-go/redis"
 	"github.com/HandsomeNPC/ruoyi-common-go/ruoyi-core/constant"
-	pkgredis "github.com/HandsomeNPC/ruoyi-common-go/ruoyi-core/redis"
 )
 
 // Init 按传入的 SATokenConfig 与包级 Redis 客户端构建全局 sa-token Manager。
 func Init(cfg SATokenConfig) {
-	storage := redis.NewStorageFromClient(pkgredis.Client())
+	storage := saredis.NewStorageFromClient(redis.Client())
 
 	manager := sagin.NewBuilder().
 		Storage(storage).
@@ -42,7 +42,7 @@ func registerOnlineTokenCleanup(mgr *sagin.Manager) {
 			return
 		}
 		key := constant.OnlineTokenKeyPrefix + data.Token
-		if err := pkgredis.Client().Del(context.Background(), key).Err(); err != nil {
+		if err := redis.Client().Del(context.Background(), key).Err(); err != nil {
 			log.Printf("[satoken] 清理在线摘要 %s 失败: %v", key, err)
 		}
 	}
