@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/HandsomeNPC/ruoyi-common-go/cache"
 	"github.com/HandsomeNPC/ruoyi-common-go/redis"
-	"github.com/HandsomeNPC/ruoyi-common-go/ruoyi-core/cache"
 	"github.com/HandsomeNPC/ruoyi-common-go/ruoyi-core/constant"
 )
 
@@ -43,7 +43,7 @@ func Instance(ctx context.Context, configKey string) (*Client, error) {
 	}
 
 	var props Properties
-	hit, err := cache.Get(ctx, constant.CacheSysOssConfig, configKey, &props)
+	hit, err := cache.Get(ctx, redis.Client(), constant.CacheSysOssConfig, configKey, &props)
 	if err != nil {
 		return nil, fmt.Errorf("oss: 读取配置 %q 失败: %w", configKey, err)
 	}
