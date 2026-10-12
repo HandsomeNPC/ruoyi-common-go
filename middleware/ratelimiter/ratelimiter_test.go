@@ -167,22 +167,16 @@ func TestNewMemberSuffixUnique(t *testing.T) {
 	}
 }
 
-// TestGetPanicsWithoutInit 未 Init 直接用应 panic，对照 encrypt.getCrypto / redis.Client。
-func TestGetPanicsWithoutInit(t *testing.T) {
-	mu.Lock()
-	saved := defaultLimiter
-	defaultLimiter = nil
-	mu.Unlock()
-	t.Cleanup(func() {
-		mu.Lock()
-		defaultLimiter = saved
-		mu.Unlock()
-	})
+// TestHandlerPanicsWithoutInit 未 Init 就构造中间件应 panic，对照 encrypt.getCrypto / redis.Client。
+func TestHandlerPanicsWithoutInit(t *testing.T) {
+	saved := defaultLimiter.Load()
+	defaultLimiter.Store(nil)
+	t.Cleanup(func() { defaultLimiter.Store(saved) })
 
 	defer func() {
 		if r := recover(); r == nil {
 			t.Error("未初始化时应 panic")
 		}
 	}()
-	get()
+	handler(newOptions(0, 0, LimitTypeGlobal, 0, ""))
 }
