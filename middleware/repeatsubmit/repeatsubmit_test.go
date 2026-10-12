@@ -49,24 +49,28 @@ func TestIntervalExactlyMinimumOK(t *testing.T) {
 	}
 }
 
-// TestGetPanicsBeforeInit 未初始化就取包级实例应 panic。
-func TestGetPanicsBeforeInit(t *testing.T) {
-	mu.Lock()
-	prev := defaultSubmitter
-	defaultSubmitter = nil
-	mu.Unlock()
-	t.Cleanup(func() {
-		mu.Lock()
-		defaultSubmitter = prev
-		mu.Unlock()
-	})
+// TestRepeatSubmitPanicsBeforeInit 未初始化就注册防重路由应 panic。
+func TestRepeatSubmitPanicsBeforeInit(t *testing.T) {
+	prev := defaultSubmitter.Load()
+	defaultSubmitter.Store(nil)
+	t.Cleanup(func() { defaultSubmitter.Store(prev) })
 
 	defer func() {
 		if recover() == nil {
-			t.Fatal("未 Init 就调 get() 应 panic")
+			t.Fatal("未 Init 就调 RepeatSubmit 应 panic")
 		}
 	}()
-	get()
+	RepeatSubmit(0, "")
+}
+
+// TestInitRejectsNilRedis Init 收到 nil redis 客户端须 panic，不拖到请求时才 NPE。
+func TestInitRejectsNilRedis(t *testing.T) {
+	defer func() {
+		if recover() == nil {
+			t.Fatal("Init(nil,...) 应 panic")
+		}
+	}()
+	Init(nil, "Authorization")
 }
 
 // TestCombineKeyPrefix 缓存键须以全局前缀 + 请求路径开头。
