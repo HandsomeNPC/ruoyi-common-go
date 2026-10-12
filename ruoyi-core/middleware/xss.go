@@ -108,6 +108,14 @@ func cleanValues(values url.Values) bool {
 	return changed
 }
 
+// contentTypeJSON JSON 请求的 content-type 前缀。
+const contentTypeJSON = "application/json"
+
+// isJSONRequest 判断是否 JSON 请求。前缀匹配且大小写不敏感。
+func isJSONRequest(c *gin.Context) bool {
+	return strings.HasPrefix(strings.ToLower(c.ContentType()), contentTypeJSON)
+}
+
 // sanitizeJSONBody 清洗 JSON 请求体，逐值清洗字符串而不清洗整串，避免破坏 JSON 结构。
 func sanitizeJSONBody(c *gin.Context) {
 	if !isJSONRequest(c) {

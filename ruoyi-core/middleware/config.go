@@ -102,40 +102,6 @@ func (x XSSConfig) SetDefaults(v *viper.Viper) {
 // Validate 校验 XSS 配置。
 func (x XSSConfig) Validate() error { return nil }
 
-// DefaultMaxParamLength 参数日志的最大长度（字符数）。
-const DefaultMaxParamLength = 4000
-
-// AccessLogConfig 请求日志配置。
-type AccessLogConfig struct {
-	// MaxParamLength 参数日志最大字符数，<=0 表示用默认值 4000。
-	MaxParamLength int `mapstructure:"maxParamLength"`
-
-	// SkipPaths 不打日志的路径（精确匹配 URL.Path）。
-	SkipPaths []string `mapstructure:"skipPaths"`
-}
-
-// DefaultAccessLog 返回请求日志默认配置。
-func DefaultAccessLog() AccessLogConfig {
-	return AccessLogConfig{
-		MaxParamLength: DefaultMaxParamLength,
-		SkipPaths:      nil,
-	}
-}
-
-// SetDefaults 把默认值铺给 viper。
-func (a AccessLogConfig) SetDefaults(v *viper.Viper) {
-	v.SetDefault("accessLog.maxParamLength", a.MaxParamLength)
-	v.SetDefault("accessLog.skipPaths", a.SkipPaths)
-}
-
-// Validate 校验请求日志配置。
-func (a AccessLogConfig) Validate() error {
-	if a.MaxParamLength < 0 {
-		return fmt.Errorf("accessLog.maxParamLength 不能为负数")
-	}
-	return nil
-}
-
 // TraceIDConfig 链路 id 中间件配置。
 type TraceIDConfig struct {
 	// Header 读写链路 id 的头名，默认 TraceIDHeader。
@@ -161,7 +127,3 @@ func (t TraceIDConfig) SetDefaults(v *viper.Viper) {
 
 // Validate 校验链路 id 配置。
 func (t TraceIDConfig) Validate() error { return nil }
-
-// ContentTypeJSON JSON 请求的 content-type 前缀。
-// 可重复读 body 的配置已迁出至 middleware/repeatablebody 包。
-const ContentTypeJSON = "application/json"

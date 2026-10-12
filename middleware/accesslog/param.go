@@ -1,4 +1,4 @@
-package middleware
+package accesslog
 
 import (
 	"bytes"
@@ -12,8 +12,11 @@ import (
 	"github.com/HandsomeNPC/ruoyi-common-go/ruoyi-core/constant"
 )
 
-// 请求参数脱敏与截断。AccessLog 与 pkg/oplog 共用：两者都要把入参压成一行文本落日志，
-// 都必须先抹掉密码类字段，也都踩同一个雪花 id 精度坑，故实现只保留一份。
+// 请求参数脱敏与截断。本包自带一份，与 oplog 各自维护——accesslog 不引外部脱敏包，
+// 换取中间件包的完全自包含。敏感字段来源仍是 constant.ExcludeProperties。
+
+// contentTypeJSON JSON 请求的 content-type 前缀。
+const contentTypeJSON = "application/json"
 
 // truncatedSuffix 截断标记。
 const truncatedSuffix = "...(已截断)"
@@ -24,9 +27,9 @@ const maxSanitizeSize = 256 << 10
 // msgSensitiveParamOmitted 参数无法结构化脱敏且疑似含敏感字段时的占位文案。
 const msgSensitiveParamOmitted = "<参数无法解析且疑似含敏感字段，已省略>"
 
-// SanitizeJSONParam 把 JSON 请求体脱敏并截断成一行文本，空体返回空串。
+// sanitizeJSONParam 把 JSON 请求体脱敏并截断成一行文本，空体返回空串。
 // exclude 是在 constant.ExcludeProperties 之外额外要剔除的字段名。
-func SanitizeJSONParam(body []byte, maxLen int, exclude []string) string {
+func sanitizeJSONParam(body []byte, maxLen int, exclude []string) string {
 	if len(body) == 0 {
 		return ""
 	}
@@ -58,8 +61,8 @@ func SanitizeJSONParam(body []byte, maxLen int, exclude []string) string {
 	return limitParam(strings.TrimRight(buf.String(), "\n"), maxLen)
 }
 
-// SanitizeFormParam 把 query 与表单参数脱敏并截断成一行文本，无参数时返回空串。
-func SanitizeFormParam(c *gin.Context, maxLen int, exclude []string) string {
+// sanitizeFormParam 把 query 与表单参数脱敏并截断成一行文本，无参数时返回空串。
+func sanitizeFormParam(c *gin.Context, maxLen int, exclude []string) string {
 	_ = c.Request.ParseForm()
 
 	form := c.Request.Form

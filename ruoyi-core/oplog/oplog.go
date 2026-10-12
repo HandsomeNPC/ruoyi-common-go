@@ -28,7 +28,6 @@ import (
 	"github.com/HandsomeNPC/ruoyi-common-go/ruoyi-core/constant"
 	"github.com/HandsomeNPC/ruoyi-common-go/ruoyi-core/enum"
 	"github.com/HandsomeNPC/ruoyi-common-go/ruoyi-core/errs"
-	"github.com/HandsomeNPC/ruoyi-common-go/ruoyi-core/middleware"
 	"github.com/HandsomeNPC/ruoyi-common-go/ruoyi-core/response"
 	"github.com/HandsomeNPC/ruoyi-common-go/ruoyi-core/satoken/loginhelper"
 
@@ -260,7 +259,7 @@ func fillLoginUser(c *gin.Context, evt *Event) {
 // 故除请求体外还要带上路径参数——否则 DELETE /client/{ids} 只剩一条
 // "删了点什么" 的空记录，而删了哪几个客户端恰是审计最需要的信息。
 func requestParam(c *gin.Context, exclude []string) string {
-	if params := middleware.SanitizeFormParam(c, maxContentLength, exclude); params != "" {
+	if params := sanitizeFormParam(c, maxContentLength, exclude); params != "" {
 		return params
 	}
 	switch c.Request.Method {
@@ -269,7 +268,7 @@ func requestParam(c *gin.Context, exclude []string) string {
 		body, _ := v.([]byte)
 		return joinParams(
 			pathParam(c, exclude),
-			middleware.SanitizeJSONParam(body, maxContentLength, exclude),
+			sanitizeJSONParam(body, maxContentLength, exclude),
 		)
 	default:
 		return ""
@@ -450,7 +449,7 @@ func (w *responseCapture) capture(b []byte) {
 // jsonBody 判断响应是否 JSON。
 func (w *responseCapture) jsonBody() bool {
 	return strings.HasPrefix(
-		strings.ToLower(w.Header().Get("Content-Type")), middleware.ContentTypeJSON)
+		strings.ToLower(w.Header().Get("Content-Type")), contentTypeJSON)
 }
 
 // text 返回抄本。非 JSON 响应返回空串：导出接口的响应体是 xlsx 二进制，
