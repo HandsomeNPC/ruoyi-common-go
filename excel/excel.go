@@ -21,14 +21,21 @@ import (
 	"unicode"
 
 	"github.com/xuri/excelize/v2"
-
-	"github.com/HandsomeNPC/ruoyi-common-go/ruoyi-core/errs"
-	"github.com/HandsomeNPC/ruoyi-common-go/ruoyi-core/response"
 )
 
 // MaxRows 单次导出的数据行上限（不含表头）。
 // 工作簿全程在内存里，没有上限时一次误操作就能把进程打爆。
 const MaxRows = 100000
+
+// TooManyRowsError 行数超过导出上限时由 Write 返回。
+// 调用方按前端文案包成业务异常——excel 包不掺合响应层语义。
+type TooManyRowsError struct {
+	Count, Limit int
+}
+
+func (e *TooManyRowsError) Error() string {
+	return fmt.Sprintf("excel: 待导出 %d 行超出上限 %d", e.Count, e.Limit)
+}
 
 // headerNumFmt 内置的文本格式号，表头按文本存，避免 "1-2" 这类表头被识别成日期。
 const headerNumFmt = 49
@@ -67,7 +74,8 @@ func (o Options) maxRows() int {
 
 // Write 把 rows 写成 xlsx 字节流。
 //
-// rows 超过上限时返回业务异常而非截断：一份静默少了行的审计表比导出失败危险得多。
+// rows 超过上限时返回错误而非截断：一份静默少了行的审计表比导出失败危险得多。
+// 调用方若要把这条错误以友好文案回给前端，需自行包成业务异常。
 func Write[T any](rows []T, opts Options) (*bytes.Buffer, error) {
 	cols, err := columnsOf[T]()
 	if err != nil {
@@ -75,9 +83,7 @@ func Write[T any](rows []T, opts Options) (*bytes.Buffer, error) {
 	}
 
 	if limit := opts.maxRows(); len(rows) > limit {
-		return nil, errs.New(response.CodeFail,
-			fmt.Sprintf("导出数据量过大，最多 %d 行，请缩小查询范围后重试", limit),
-			fmt.Sprintf("excel: 待导出 %d 行超出上限 %d", len(rows), limit))
+		return nil, &TooManyRowsError{Count: len(rows), Limit: limit}
 	}
 
 	sheet := opts.sheetName()
