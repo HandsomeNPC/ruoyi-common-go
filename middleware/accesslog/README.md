@@ -36,8 +36,8 @@ xss.XSSWithConfig(cfg.XSS),
 | `maxParamLength` | 4000   | 参数日志最大字符数，超出截断。        |
 | `skipPaths`      | 空     | 不打日志的路径，精确匹配 `URL.Path`。 |
 
-零值字段回落默认。`SetDefaults` / `Validate` 与其它中间件配置一致，供各模块 `config`
-统一铺默认值与校验。
+零值字段回落默认。默认值由 `AccessLogWithConfig` 注册时就地铺底，配置不合规直接 panic，调用方无需手动调 `SetDefaults` /
+`Validate`。
 
 ## 行为约定
 

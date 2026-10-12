@@ -8,10 +8,16 @@
 package accesslog
 
 import (
+	"fmt"
+
 	"github.com/gin-gonic/gin"
 )
 
-// AccessLogWithConfig 访问日志中间件。
+// AccessLogWithConfig 访问日志中间件。注册前就地铺兜底默认值并校验配置，不合规直接 panic，调用方无需手动校验。
 func AccessLogWithConfig(cfg AccessLogConfig) gin.HandlerFunc {
+	cfg.applyDefaults()
+	if err := cfg.validate(); err != nil {
+		panic(fmt.Sprintf("accessLog: %v", err))
+	}
 	return handler(cfg)
 }
