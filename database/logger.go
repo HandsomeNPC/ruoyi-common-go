@@ -3,13 +3,12 @@ package database
 import (
 	"log"
 	"os"
-	"time"
 
 	gormlogger "gorm.io/gorm/logger"
 )
 
 // newLogger 按数据源配置构造 GORM 日志器。
-func newLogger(cfg DatasourceConfig) gormlogger.Interface {
+func newLogger(cfg SourceConfig) gormlogger.Interface {
 	return gormlogger.New(
 		log.New(os.Stdout, "[sql] ", log.LstdFlags),
 		gormlogger.Config{
@@ -34,6 +33,3 @@ func logLevel(level string) gormlogger.LogLevel {
 		return gormlogger.Warn
 	}
 }
-
-// pingTimeout 启动时探活数据库的超时时间。
-const pingTimeout = 5 * time.Second
