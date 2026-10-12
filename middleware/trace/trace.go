@@ -1,4 +1,4 @@
-package middleware
+package trace
 
 import (
 	"context"
@@ -18,8 +18,8 @@ type traceIDCtxKey struct{}
 // traceIDMaxLength 允许沿用的入站 id 最大长度。
 const traceIDMaxLength = 64
 
-// TraceIDWithConfig 链路 id 中间件：取或生成 id，写进上下文与响应头。必须注册在 CORS 之后。
-func TraceIDWithConfig(cfg TraceIDConfig) gin.HandlerFunc {
+// handler 生成链路 id 中间件。
+func handler(cfg TraceIDConfig) gin.HandlerFunc {
 	header := cfg.Header
 	if header == "" {
 		header = TraceIDHeader
@@ -52,14 +52,6 @@ func TraceIDFrom(ctx context.Context) string {
 	}
 	id, _ := ctx.Value(traceIDCtxKey{}).(string)
 	return id
-}
-
-// logTracePrefix 返回日志用的 " [traceId]" 片段，无 id 时返回空串。
-func logTracePrefix(c *gin.Context) string {
-	if id := c.GetString(TraceIDKey); id != "" {
-		return " [" + id + "]"
-	}
-	return ""
 }
 
 // NewTraceID 生成 32 位十六进制链路 id。

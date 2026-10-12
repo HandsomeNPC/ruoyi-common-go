@@ -97,6 +97,17 @@ func newErrorID() string {
 	return fmt.Sprintf("%08d", rand.IntN(100000000))
 }
 
+// traceIDKey 与 trace 包 TraceIDKey 同值，这里直接用字面量避免反向依赖 middleware/trace 包。
+const traceIDKey = "traceId"
+
+// logTracePrefix 返回日志用的 " [traceId]" 片段，无 id 时返回空串。
+func logTracePrefix(c *gin.Context) string {
+	if id := c.GetString(traceIDKey); id != "" {
+		return " [" + id + "]"
+	}
+	return ""
+}
+
 // isBrokenPipe 判断 panic 是否由客户端断连引起。Windows 与 Unix 文案不同，两边都要匹配。
 func isBrokenPipe(r any) bool {
 	ne, ok := r.(*net.OpError)

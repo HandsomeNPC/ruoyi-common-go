@@ -1,4 +1,4 @@
-package middleware
+package trace
 
 import (
 	"github.com/spf13/viper"

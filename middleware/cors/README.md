@@ -13,12 +13,13 @@ Auth 之前。
 import (
 "github.com/HandsomeNPC/ruoyi-common-go/middleware"
 "github.com/HandsomeNPC/ruoyi-common-go/middleware/cors"
+"github.com/HandsomeNPC/ruoyi-common-go/middleware/trace"
 )
 
 r.Use(
 middleware.Recover(),
 cors.CORSWithConfig(cfg.CORS),
-middleware.TraceIDWithConfig(cfg.TraceID),
+trace.TraceIDWithConfig(cfg.TraceID),
 )
 ```
 
