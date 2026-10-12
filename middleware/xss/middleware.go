@@ -1,4 +1,4 @@
-package middleware
+package xss
 
 import (
 	"bytes"
@@ -15,9 +15,8 @@ import (
 // reHTMLTag 匹配一个 HTML 标签。
 var reHTMLTag = regexp.MustCompile(`<[^<]*?>`)
 
-// XSSWithConfig 请求清洗中间件：把请求里的 HTML 标签剔掉（保留标签内的文字）。
-// 必须注册在 RepeatableBody 之后、所有读参数的中间件与 handler 之前。
-func XSSWithConfig(cfg XSSConfig) gin.HandlerFunc {
+// handler 生成请求清洗中间件。
+func handler(cfg XSSConfig) gin.HandlerFunc {
 	skip := make(map[string]struct{}, len(cfg.SkipMethods))
 	methods := cfg.SkipMethods
 	if len(methods) == 0 {
@@ -108,9 +107,6 @@ func cleanValues(values url.Values) bool {
 	return changed
 }
 
-// contentTypeJSON JSON 请求的 content-type 前缀。
-const contentTypeJSON = "application/json"
-
 // isJSONRequest 判断是否 JSON 请求。前缀匹配且大小写不敏感。
 func isJSONRequest(c *gin.Context) bool {
 	return strings.HasPrefix(strings.ToLower(c.ContentType()), contentTypeJSON)
@@ -190,4 +186,15 @@ func cleanJSONNode(node any) (any, bool) {
 	default:
 		return node, false
 	}
+}
+
+// traceIDKey 与 ruoyi-core/middleware.TraceIDKey 同值，这里直接用字面量避免反向依赖 middleware 包。
+const traceIDKey = "traceId"
+
+// logTracePrefix 返回日志用的 " [traceId]" 片段，无 id 时返回空串。
+func logTracePrefix(c *gin.Context) string {
+	if id := c.GetString(traceIDKey); id != "" {
+		return " [" + id + "]"
+	}
+	return ""
 }

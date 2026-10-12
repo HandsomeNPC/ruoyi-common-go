@@ -15,6 +15,7 @@ import (
 "github.com/HandsomeNPC/ruoyi-common-go/middleware/accesslog"
 "github.com/HandsomeNPC/ruoyi-common-go/middleware/cors"
 "github.com/HandsomeNPC/ruoyi-common-go/middleware/repeatablebody"
+"github.com/HandsomeNPC/ruoyi-common-go/middleware/xss"
 )
 
 r.Use(
@@ -23,7 +24,7 @@ cors.CORSWithConfig(cfg.CORS),
 middleware.TraceIDWithConfig(cfg.TraceID),
 repeatablebody.RepeatableBodyWithConfig(cfg.RepeatableBody),
 accesslog.AccessLogWithConfig(cfg.AccessLog),
-middleware.XSSWithConfig(cfg.XSS),
+xss.XSSWithConfig(cfg.XSS),
 )
 ```
 

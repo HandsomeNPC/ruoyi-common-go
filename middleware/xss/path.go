@@ -1,4 +1,4 @@
-package middleware
+package xss
 
 import "strings"
 
