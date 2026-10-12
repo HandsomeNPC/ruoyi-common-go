@@ -3,6 +3,8 @@ package satoken
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"log"
 
 	"github.com/sa-tokens/sa-token-go/core/listener"
@@ -13,8 +15,20 @@ import (
 	"github.com/HandsomeNPC/ruoyi-common-go/ruoyi-core/constant"
 )
 
+// defaultTokenName 读取 token 的请求头名默认值。
+const defaultTokenName = "Authorization"
+
+// errMissingSecretKey 密钥未配置。随机兜底会让多进程各签各的、重启后旧 token 全失效。
+var errMissingSecretKey = errors.New("satoken.jwtSecretKey 未配置")
+
 // Init 按传入的 SATokenConfig 与包级 Redis 客户端构建全局 sa-token Manager。
+// 须在 redis.Init 之后调用；配置非法直接 panic，fail-fast。
 func Init(cfg SATokenConfig) {
+	cfg.applyDefaults()
+	if err := cfg.validate(); err != nil {
+		panic(fmt.Errorf("satoken: 初始化失败: %w", err))
+	}
+
 	storage := saredis.NewStorageFromClient(redis.Client())
 
 	manager := sagin.NewBuilder().
@@ -54,4 +68,13 @@ func registerOnlineTokenCleanup(mgr *sagin.Manager) {
 // Manager 返回全局 Manager，未调用 Init 会由 sagin.GetManager 自身 panic。
 func Manager() *sagin.Manager {
 	return sagin.GetManager()
+}
+
+// TokenName 返回生效的 token 请求头名，须在 Init 之后调用。
+//
+// 调用方(repeatsubmit、SSE 的 query token 规范化)需要的是 Init 兜底后的值，
+// 而默认值由本包内部补齐、不回写调用方持有的 SATokenConfig，故不能直接读
+// cfg.TokenName——yaml 省略该项时那边仍是空串。
+func TokenName() string {
+	return Manager().GetConfig().TokenName
 }
