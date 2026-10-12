@@ -145,8 +145,6 @@ func TestCacheGroupNamesHaveNoParams(t *testing.T) {
 		CacheSysUserName:     "sys_user_name",
 		CacheSysNickname:     "sys_nickname",
 		CacheSysDept:         "sys_dept",
-		CacheSysOss:          "sys_oss",
-		CacheSysOssConfig:    "sys_oss_config",
 		CacheSysRoleCustom:   "sys_role_custom",
 		CacheSysDeptAndChild: "sys_dept_and_child",
 	}
@@ -174,7 +172,6 @@ func TestCacheTTL(t *testing.T) {
 		"sys_user_name":      {CacheTTLSysUserName, 720 * time.Hour},
 		"sys_nickname":       {CacheTTLSysNickname, 720 * time.Hour},
 		"sys_dept":           {CacheTTLSysDept, 720 * time.Hour},
-		"sys_oss":            {CacheTTLSysOss, 720 * time.Hour},
 		"sys_role_custom":    {CacheTTLSysRoleCustom, 720 * time.Hour},
 		"sys_dept_and_child": {CacheTTLSysDeptAndChild, 720 * time.Hour},
 	}

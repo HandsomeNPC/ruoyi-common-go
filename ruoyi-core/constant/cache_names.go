@@ -12,10 +12,8 @@ const (
 	CacheSysUserName     = "sys_user_name"
 	CacheSysNickname     = "sys_nickname"
 	CacheSysDept         = "sys_dept"
-	CacheSysOss          = "sys_oss"
 	CacheSysRoleCustom   = "sys_role_custom"
 	CacheSysDeptAndChild = "sys_dept_and_child"
-	CacheSysOssConfig    = "sys_oss_config"
 )
 
 // 独立 key 前缀，使用时直接拼接标识。
@@ -33,17 +31,12 @@ const (
 	// CacheTTLSysDict/CacheTTLSysDictType 字典不过期（key 不带 #ttl 后缀）。
 	// 字典是全站高频读的静态数据，且写路径都带
 	// 缓存维护（新增/修改回写、删除失效、refreshCache 整组清），无需靠 TTL 兜底。
-	CacheTTLSysDict     = 0
-	CacheTTLSysDictType = 0
-	CacheTTLSysClient   = 30 * 24 * time.Hour
-	CacheTTLSysUserName = 30 * 24 * time.Hour
-	CacheTTLSysNickname = 30 * 24 * time.Hour
-	CacheTTLSysDept     = 30 * 24 * time.Hour
-	CacheTTLSysOss      = 30 * 24 * time.Hour
-	// CacheTTLSysOssConfig 对象存储配置不过期（key 不带 #ttl 后缀）。
-	// 写路径都带缓存维护（新增/修改回写、改键清旧键、删除失效），
-	// 且它是上传下载的必经依赖，过期后拿不到配置会直接让上传失败。
-	CacheTTLSysOssConfig    = 0
+	CacheTTLSysDict         = 0
+	CacheTTLSysDictType     = 0
+	CacheTTLSysClient       = 30 * 24 * time.Hour
+	CacheTTLSysUserName     = 30 * 24 * time.Hour
+	CacheTTLSysNickname     = 30 * 24 * time.Hour
+	CacheTTLSysDept         = 30 * 24 * time.Hour
 	CacheTTLSysRoleCustom   = 30 * 24 * time.Hour
 	CacheTTLSysDeptAndChild = 30 * 24 * time.Hour
 )

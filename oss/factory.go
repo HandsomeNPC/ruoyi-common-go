@@ -7,8 +7,7 @@ import (
 	"sync"
 
 	"github.com/HandsomeNPC/ruoyi-common-go/cache"
-	"github.com/HandsomeNPC/ruoyi-common-go/redis"
-	"github.com/HandsomeNPC/ruoyi-common-go/ruoyi-core/constant"
+	goredis "github.com/redis/go-redis/v9"
 )
 
 // ErrConfigNotFound 配置键对应的配置不在缓存里。
@@ -24,26 +23,26 @@ var (
 	clients   = make(map[string]*Client)
 )
 
-// InstanceDefault 取当前默认配置的客户端，供上传用。
-func InstanceDefault(ctx context.Context) (*Client, error) {
-	configKey, err := redis.Client().Get(ctx, constant.OssDefaultConfigKey).Result()
+// GetDefaultS3Client 取当前默认配置的客户端，供上传用。
+func GetDefaultS3Client(ctx context.Context, rdb *goredis.Client) (*Client, error) {
+	configKey, err := rdb.Get(ctx, OssDefaultConfigKey).Result()
 	if err != nil || configKey == "" {
 		return nil, ErrDefaultConfigNotSet
 	}
-	return Instance(ctx, configKey)
+	return GetS3Client(ctx, rdb, configKey)
 }
 
-// Instance 取指定配置键的客户端，供下载/删除按文件记录的 service 列取用。
+// GetS3Client 取指定配置键的客户端，供下载/删除按文件记录的 service 列取用。
 //
 // 配置变了不需要显式失效：每次都重新解析缓存里的配置，与已缓存客户端的配置比对，
 // 不一致就重建。Remove 只是主动清理。
-func Instance(ctx context.Context, configKey string) (*Client, error) {
+func GetS3Client(ctx context.Context, rdb *goredis.Client, configKey string) (*Client, error) {
 	if configKey == "" {
 		return nil, ErrDefaultConfigNotSet
 	}
 
 	var props Properties
-	hit, err := cache.Get(ctx, redis.Client(), constant.CacheSysOssConfig, configKey, &props)
+	hit, err := cache.Get(ctx, rdb, CacheSysOssConfig, configKey, &props)
 	if err != nil {
 		return nil, fmt.Errorf("oss: 读取配置 %q 失败: %w", configKey, err)
 	}
