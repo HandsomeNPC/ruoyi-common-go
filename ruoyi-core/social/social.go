@@ -12,7 +12,7 @@
 //
 // 加一个平台 = 实现 Provider 的两个方法并在 Init 里注册，约 30 行。
 //
-// 初始化对照 sms.Init / mail.Init：social.Init(cfg) 收 SocialConfig，
+// 初始化对照 smshelper.Init / mailhelper.Init：social.Init(cfg) 收 SocialConfig，
 // 但依赖 Redis(state 存 Redis)，须排在 redis.Init 之后。
 package social
 
