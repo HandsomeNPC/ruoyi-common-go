@@ -43,8 +43,8 @@ body, _ := v.([]byte)
 | `contentTypes` | `["application/json"]` | 需缓存的 content-type 前缀，大小写不敏感。 |
 | `maxBodySize`  | 10MB                   | 超出则拒绝请求。                           |
 
-零值字段回落默认。`SetDefaults` / `Validate` 与其它中间件配置一致，供各模块
-`config` 统一铺默认值与校验。
+零值字段回落默认。默认值与校验由 `RepeatableBodyWithConfig` 注册时就地铺底，配置不合规直接 panic，调用方无需手动调
+`SetDefaults` / `Validate`。
 
 ## 行为约定
 

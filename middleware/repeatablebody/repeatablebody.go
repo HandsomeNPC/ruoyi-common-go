@@ -15,10 +15,16 @@
 package repeatablebody
 
 import (
+	"fmt"
+
 	"github.com/gin-gonic/gin"
 )
 
-// RepeatableBodyWithConfig 可重复读请求体中间件。
+// RepeatableBodyWithConfig 可重复读请求体中间件。注册前就地铺兜底默认值并校验配置，不合规直接 panic，调用方无需手动校验。
 func RepeatableBodyWithConfig(cfg RepeatableBodyConfig) gin.HandlerFunc {
+	cfg.applyDefaults()
+	if err := cfg.validate(); err != nil {
+		panic(fmt.Sprintf("repeatableBody: %v", err))
+	}
 	return handler(cfg)
 }

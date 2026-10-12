@@ -35,8 +35,7 @@ r.Use(
 | `excludeUrls` | `["/system/notice","/warm-flow/save-json"]` | 跳过清洗的路径，Ant 风格。                |
 | `skipMethods` | `["GET","DELETE"]`                          | 跳过清洗的请求方法，为空回落 GET/DELETE。 |
 
-零值字段回落默认。`SetDefaults` / `Validate` 与其它中间件配置一致，供各模块
-`config` 统一铺默认值与校验。
+零值字段回落默认。默认值由 `XSSWithConfig` 注册时就地铺底，调用方无需手动调 `SetDefaults` / `Validate`。
 
 ## 行为约定
 

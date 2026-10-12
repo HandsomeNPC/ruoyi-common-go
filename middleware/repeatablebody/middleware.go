@@ -19,7 +19,7 @@ import (
 func handler(cfg RepeatableBodyConfig) gin.HandlerFunc {
 	maxSize := cfg.MaxBodySize
 	if maxSize <= 0 {
-		maxSize = DefaultRepeatableBody().MaxBodySize
+		maxSize = defaultMaxBodySize
 	}
 	types := make([]string, 0, len(cfg.ContentTypes))
 	for _, t := range cfg.ContentTypes {

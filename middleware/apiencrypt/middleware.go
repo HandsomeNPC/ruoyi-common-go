@@ -35,8 +35,12 @@ type Crypto struct {
 }
 
 // newCrypto 解析配置构造 Crypto。!Enabled 返回零值（中间件直通）；密钥解析失败 panic
-// （启动期 fail-fast，与原 encrypt.Init 行为一致）。
+// （启动期 fail-fast，与原 encrypt.Init 行为一致）。注册前就地铺默认值并校验，调用方无需手动校验。
 func newCrypto(cfg APIEncryptConfig) *Crypto {
+	cfg.applyDefaults()
+	if err := cfg.validate(); err != nil {
+		panic(fmt.Sprintf("apiEncrypt: %v", err))
+	}
 	if !cfg.Enabled {
 		return &Crypto{}
 	}

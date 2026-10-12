@@ -29,7 +29,7 @@ r.Use(
 | `header`       | `X-Request-Id` | 读写链路 id 的头名。                          |
 | `trustInbound` | `true`         | 是否沿用入站请求头里已有的 id（白名单校验）。 |
 
-零值字段回落默认。`SetDefaults` / `Validate` 与其它中间件配置一致， 供各模块 `config` 统一铺默认值与校验。
+零值字段回落默认。默认值由 `TraceIDWithConfig` 注册时就地铺底，调用方无需手动调 `SetDefaults` / `Validate`。
 
 ## 行为约定
 

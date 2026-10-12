@@ -36,8 +36,8 @@ g.POST("/secret", apiencrypt.APIEncryptWithResponseWithConfig(cfg.APIEncrypt), h
 | `publicKey`  | -             | 响应加密用的 RSA 公钥，base64 编码的 X.509 SPKI。         |
 | `privateKey` | -             | 请求解密用的 RSA 私钥，base64 编码的 PKCS#8。启用时必填。 |
 
-`SetDefaults` / `Validate` 与其它中间件配置一致，供各模块 `config` 统一铺默认值与校验。 密钥解析在路由注册期做（`newCrypto`
-），失败 panic —— 启动期 fail-fast，与原 `encrypt.Init` 一致。
+默认值与校验由 `newCrypto`（路由注册期）就地做：`HeaderFlag` 为空补默认头名，`enabled` 为 true 却缺 `privateKey` 直接
+panic；密钥解析失败同样 panic，启动期 fail-fast，与原 `encrypt.Init` 一致。调用方无需手动调 `SetDefaults` / `Validate`。
 
 ## 协议
 

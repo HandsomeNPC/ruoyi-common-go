@@ -25,7 +25,8 @@ func newEngine(cfg RepeatableBodyConfig) *gin.Engine {
 
 // TestDefaultConfig 全为零值时应回落到默认值。
 func TestDefaultConfig(t *testing.T) {
-	d := DefaultRepeatableBody()
+	var d RepeatableBodyConfig
+	d.applyDefaults()
 
 	if got, want := d.MaxBodySize, int64(defaultMaxBodySize); got != want {
 		t.Errorf("默认 MaxBodySize = %d, want %d", got, want)
@@ -33,10 +34,10 @@ func TestDefaultConfig(t *testing.T) {
 	if len(d.ContentTypes) != 1 || d.ContentTypes[0] != contentTypeJSON {
 		t.Errorf("默认 ContentTypes = %v, want [%q]", d.ContentTypes, contentTypeJSON)
 	}
-	if err := d.Validate(); err != nil {
+	if err := d.validate(); err != nil {
 		t.Errorf("默认配置应校验通过, got %v", err)
 	}
-	if err := (RepeatableBodyConfig{MaxBodySize: -1}).Validate(); err == nil {
+	if err := (RepeatableBodyConfig{MaxBodySize: -1}).validate(); err == nil {
 		t.Error("负 MaxBodySize 应校验失败")
 	}
 }

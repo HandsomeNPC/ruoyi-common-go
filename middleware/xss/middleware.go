@@ -20,7 +20,7 @@ func handler(cfg XSSConfig) gin.HandlerFunc {
 	skip := make(map[string]struct{}, len(cfg.SkipMethods))
 	methods := cfg.SkipMethods
 	if len(methods) == 0 {
-		methods = DefaultXSS().SkipMethods
+		methods = defaultXSSSkipMethods
 	}
 	for _, m := range methods {
 		skip[strings.ToUpper(strings.TrimSpace(m))] = struct{}{}

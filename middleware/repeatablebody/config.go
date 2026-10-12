@@ -1,10 +1,6 @@
 package repeatablebody
 
-import (
-	"fmt"
-
-	"github.com/spf13/viper"
-)
+import "fmt"
 
 // contentTypeJSON JSON 请求的 content-type 前缀。
 const contentTypeJSON = "application/json"
@@ -21,22 +17,18 @@ type RepeatableBodyConfig struct {
 	MaxBodySize int64 `mapstructure:"maxBodySize"`
 }
 
-// DefaultRepeatableBody 返回可重复读 body 默认配置。
-func DefaultRepeatableBody() RepeatableBodyConfig {
-	return RepeatableBodyConfig{
-		ContentTypes: []string{contentTypeJSON},
-		MaxBodySize:  defaultMaxBodySize,
+// applyDefaults 就地铺兜底默认值。ContentTypes 为空补 application/json；MaxBodySize 为 0 补 10MB，负数留给 validate 拦。
+func (c *RepeatableBodyConfig) applyDefaults() {
+	if len(c.ContentTypes) == 0 {
+		c.ContentTypes = []string{contentTypeJSON}
+	}
+	if c.MaxBodySize == 0 {
+		c.MaxBodySize = defaultMaxBodySize
 	}
 }
 
-// SetDefaults 把默认值铺给 viper。
-func (c RepeatableBodyConfig) SetDefaults(v *viper.Viper) {
-	v.SetDefault("repeatableBody.contentTypes", c.ContentTypes)
-	v.SetDefault("repeatableBody.maxBodySize", c.MaxBodySize)
-}
-
-// Validate 校验可重复读 body 配置。
-func (c RepeatableBodyConfig) Validate() error {
+// validate 校验配置合理性，注册期调用，不合规直接 panic。
+func (c RepeatableBodyConfig) validate() error {
 	if c.MaxBodySize < 0 {
 		return fmt.Errorf("repeatableBody.maxBodySize 不能为负数")
 	}

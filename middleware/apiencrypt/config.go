@@ -1,10 +1,6 @@
 package apiencrypt
 
-import (
-	"fmt"
-
-	"github.com/spf13/viper"
-)
+import "fmt"
 
 // DefaultAPIEncryptHeader 传递 AES 密钥的头名。
 const DefaultAPIEncryptHeader = "encrypt-key"
@@ -21,24 +17,15 @@ type APIEncryptConfig struct {
 	PrivateKey string `mapstructure:"privateKey"`
 }
 
-// DefaultAPIEncrypt 返回接口加解密默认配置。
-func DefaultAPIEncrypt() APIEncryptConfig {
-	return APIEncryptConfig{
-		Enabled:    false,
-		HeaderFlag: DefaultAPIEncryptHeader,
+// applyDefaults 就地铺兜底默认值。HeaderFlag 为空补默认头名；其余字段无默认。
+func (a *APIEncryptConfig) applyDefaults() {
+	if a.HeaderFlag == "" {
+		a.HeaderFlag = DefaultAPIEncryptHeader
 	}
 }
 
-// SetDefaults 把默认值铺给 viper。
-func (a APIEncryptConfig) SetDefaults(v *viper.Viper) {
-	v.SetDefault("apiEncrypt.enabled", a.Enabled)
-	v.SetDefault("apiEncrypt.headerFlag", a.HeaderFlag)
-	v.SetDefault("apiEncrypt.publicKey", a.PublicKey)
-	v.SetDefault("apiEncrypt.privateKey", a.PrivateKey)
-}
-
-// Validate 校验接口加解密配置
-func (a APIEncryptConfig) Validate() error {
+// validate 校验配置合理性，注册期调用，不合规直接 panic。!Enabled 时直通，不要求密钥。
+func (a APIEncryptConfig) validate() error {
 	if !a.Enabled {
 		return nil
 	}

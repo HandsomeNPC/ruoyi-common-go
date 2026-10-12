@@ -14,7 +14,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// XSSWithConfig 请求清洗中间件。
+// XSSWithConfig 请求清洗中间件。注册前就地铺兜底默认值，调用方无需手动调 SetDefaults / Validate。
 func XSSWithConfig(cfg XSSConfig) gin.HandlerFunc {
+	cfg.applyDefaults()
 	return handler(cfg)
 }

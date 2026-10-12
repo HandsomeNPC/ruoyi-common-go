@@ -11,6 +11,8 @@ import (
 )
 
 // TraceIDWithConfig 链路 id 中间件：取或生成 id，写进上下文与响应头。必须注册在 CORS 之后。
+// 注册前就地铺兜底默认值，调用方无需手动调 SetDefaults / Validate。
 func TraceIDWithConfig(cfg TraceIDConfig) gin.HandlerFunc {
+	cfg.applyDefaults()
 	return handler(cfg)
 }
