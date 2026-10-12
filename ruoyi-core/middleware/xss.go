@@ -113,7 +113,8 @@ func sanitizeJSONBody(c *gin.Context) {
 	if !isJSONRequest(c) {
 		return
 	}
-	body := BodyBytes(c)
+	v, _ := c.Get(gin.BodyBytesKey)
+	body, _ := v.([]byte)
 	if len(body) == 0 {
 		return
 	}

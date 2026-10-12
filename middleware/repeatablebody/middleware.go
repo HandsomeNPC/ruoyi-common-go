@@ -1,18 +1,22 @@
-package middleware
+package repeatablebody
 
 import (
 	"bytes"
 	"io"
 	"log"
+	"net/http"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/HandsomeNPC/ruoyi-common-go/ruoyi-core/errs"
+	"github.com/HandsomeNPC/ruoyi-common-go/ruoyi-core/response"
 )
 
-// RepeatableBodyWithConfig 可重复读请求体中间件。
-func RepeatableBodyWithConfig(cfg RepeatableBodyConfig) gin.HandlerFunc {
+// handler 生成可重复读 body 中间件。
+//
+// 不依赖 errs + 全局 Recover 兜底渲染：超限是确定性业务失败，直接用 response.Fail 写回，
+// 既免去 errs 依赖，也避免「中间件已 Abort 但要等 Recover 才落响应」的隐式时序。
+func handler(cfg RepeatableBodyConfig) gin.HandlerFunc {
 	maxSize := cfg.MaxBodySize
 	if maxSize <= 0 {
 		maxSize = DefaultRepeatableBody().MaxBodySize
@@ -38,6 +42,7 @@ func RepeatableBodyWithConfig(cfg RepeatableBodyConfig) gin.HandlerFunc {
 		// 多读 1 字节用来区分「刚好到上限」和「已经超了」。
 		body, err := io.ReadAll(io.LimitReader(c.Request.Body, maxSize+1))
 		if err != nil {
+			// 读取失败是系统异常，登记原始 err 交由 Recover 兜底（带错误编号），不在此直渲。
 			log.Printf("[body]%s 请求地址'%s',读取请求体失败: %v",
 				logTracePrefix(c), c.Request.URL.Path, err)
 			_ = c.Error(err)
@@ -56,16 +61,6 @@ func RepeatableBodyWithConfig(cfg RepeatableBodyConfig) gin.HandlerFunc {
 	}
 }
 
-// BodyBytes 取已缓存的请求体，未缓存时返回 nil。
-func BodyBytes(c *gin.Context) []byte {
-	v, ok := c.Get(gin.BodyBytesKey)
-	if !ok {
-		return nil
-	}
-	body, _ := v.([]byte)
-	return body
-}
-
 // shouldBufferBody 判断本次请求是否需要缓存 body。
 func shouldBufferBody(c *gin.Context, types []string) bool {
 	if c.Request.Body == nil || c.Request.ContentLength == 0 {
@@ -81,10 +76,20 @@ func shouldBufferBody(c *gin.Context, types []string) bool {
 	return false
 }
 
-// rejectOversizedBody 拒绝超限的请求体。
+// rejectOversizedBody 拒绝超限的请求体，直接回写统一失败响应。
 func rejectOversizedBody(c *gin.Context, size, maxSize int64) {
 	log.Printf("[body]%s 请求地址'%s',请求体超限: %d > %d 字节",
 		logTracePrefix(c), c.Request.URL.Path, size, maxSize)
-	_ = c.Error(errs.New(0, "请求体超出大小限制", ""))
-	c.Abort()
+	c.AbortWithStatusJSON(http.StatusOK, response.Fail("请求体超出大小限制"))
+}
+
+// traceIDKey 与 ruoyi-core/middleware.TraceIDKey 同值，这里直接用字面量避免反向依赖 middleware 包。
+const traceIDKey = "traceId"
+
+// logTracePrefix 返回日志用的 " [traceId]" 片段，无 id 时返回空串。
+func logTracePrefix(c *gin.Context) string {
+	if id := c.GetString(traceIDKey); id != "" {
+		return " [" + id + "]"
+	}
+	return ""
 }

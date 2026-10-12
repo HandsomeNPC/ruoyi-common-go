@@ -265,9 +265,11 @@ func requestParam(c *gin.Context, exclude []string) string {
 	}
 	switch c.Request.Method {
 	case http.MethodPost, http.MethodPut, http.MethodDelete:
+		v, _ := c.Get(gin.BodyBytesKey)
+		body, _ := v.([]byte)
 		return joinParams(
 			pathParam(c, exclude),
-			middleware.SanitizeJSONParam(middleware.BodyBytes(c), maxContentLength, exclude),
+			middleware.SanitizeJSONParam(body, maxContentLength, exclude),
 		)
 	default:
 		return ""

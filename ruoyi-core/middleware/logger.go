@@ -47,8 +47,10 @@ func logRequestStart(c *gin.Context, path string, maxLen int) {
 
 	// 按 content-type 分流，不看请求方法。
 	if isJSONRequest(c) {
+		v, _ := c.Get(gin.BodyBytesKey)
+		body, _ := v.([]byte)
 		log.Printf("[access]%s 开始请求 => URL[%s %s],参数类型[json],参数:[%s]",
-			prefix, method, path, SanitizeJSONParam(BodyBytes(c), maxLen, nil))
+			prefix, method, path, SanitizeJSONParam(body, maxLen, nil))
 		return
 	}
 

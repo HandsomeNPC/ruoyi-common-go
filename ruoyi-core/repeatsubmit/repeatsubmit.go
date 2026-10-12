@@ -28,7 +28,6 @@ import (
 	"github.com/HandsomeNPC/ruoyi-common-go/redis"
 	"github.com/HandsomeNPC/ruoyi-common-go/ruoyi-core/constant"
 	"github.com/HandsomeNPC/ruoyi-common-go/ruoyi-core/errs"
-	"github.com/HandsomeNPC/ruoyi-common-go/ruoyi-core/middleware"
 	"github.com/HandsomeNPC/ruoyi-common-go/ruoyi-core/response"
 )
 
@@ -239,9 +238,11 @@ func requestParams(c *gin.Context) []byte {
 	return buf
 }
 
-// requestBody 取请求体，优先用 middleware.RepeatableBody 缓存副本；未缓存时读后塞回 Body 保证 handler 仍能读到。
+// requestBody 取请求体，优先用已缓存的请求体副本；未缓存时读后塞回 Body 保证 handler 仍能读到。
 func requestBody(c *gin.Context) []byte {
-	if body := middleware.BodyBytes(c); body != nil {
+	v, _ := c.Get(gin.BodyBytesKey)
+	body, _ := v.([]byte)
+	if body != nil {
 		return body
 	}
 	if c.Request.Body == nil {

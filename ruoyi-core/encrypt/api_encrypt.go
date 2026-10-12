@@ -168,7 +168,7 @@ func (e *Crypto) decryptRequest(c *gin.Context, headerValue string) bool {
 	c.Request.ContentLength = int64(len(body))
 	c.Request.Header.Set("Content-Type", "application/json")
 	// 同步更新 BodyBytesKey：RepeatableBody 在本注解之前已缓存密文，此处覆盖为明文，
-	// 让下游用 middleware.BodyBytes 取到的是明文。
+	// 让下游 c.Get(gin.BodyBytesKey) 取到的是明文。
 	c.Set(gin.BodyBytesKey, body)
 	return true
 }
