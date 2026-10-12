@@ -13,12 +13,13 @@
 import (
 "github.com/HandsomeNPC/ruoyi-common-go/middleware"
 "github.com/HandsomeNPC/ruoyi-common-go/middleware/accesslog"
+"github.com/HandsomeNPC/ruoyi-common-go/middleware/cors"
 "github.com/HandsomeNPC/ruoyi-common-go/middleware/repeatablebody"
 )
 
 r.Use(
 middleware.Recover(),
-middleware.CORSWithConfig(cfg.CORS),
+cors.CORSWithConfig(cfg.CORS),
 middleware.TraceIDWithConfig(cfg.TraceID),
 repeatablebody.RepeatableBodyWithConfig(cfg.RepeatableBody),
 accesslog.AccessLogWithConfig(cfg.AccessLog),

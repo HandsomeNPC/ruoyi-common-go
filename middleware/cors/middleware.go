@@ -1,4 +1,4 @@
-package middleware
+package cors
 
 import (
 	"net/http"
@@ -8,8 +8,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// CORSWithConfig 跨域中间件。必须注册在 Auth 之前。
-func CORSWithConfig(cfg CORSConfig) gin.HandlerFunc {
+// handler 生成跨域中间件，必须注册在 Auth 之前。
+func handler(cfg CORSConfig) gin.HandlerFunc {
 	maxAge := strconv.FormatInt(int64(cfg.MaxAge().Seconds()), 10)
 	exposed := strings.Join(cfg.ExposedHeaders, ", ")
 
