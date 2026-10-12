@@ -23,13 +23,11 @@ const (
 )
 
 // SourceConfig 单个命名数据源配置，对应 yaml 的 datasource.datasource.<name> 段。
-// URL 为完整的 GORM DSN；username/password 仅作配置可读性保留，建连以 URL 为准。
+// URL 为完整的 GORM DSN，账号密码含在其中，驱动 Open 只吃这一串。
 type SourceConfig struct {
-	Type            string `mapstructure:"type"`     // mysql|postgres|sqlserver|oracle
-	URL             string `mapstructure:"url"`      // GORM DSN
-	Username        string `mapstructure:"username"` // 信息字段，DSN 已含
-	Password        string `mapstructure:"password"` // 信息字段，DSN 已含
-	Lazy            bool   `mapstructure:"lazy"`     // 懒加载，首次 DBByName 才建连
+	Type            string `mapstructure:"type"` // mysql|postgres|sqlserver|oracle
+	URL             string `mapstructure:"url"`  // GORM DSN
+	Lazy            bool   `mapstructure:"lazy"` // 懒加载，首次 DBByName 才建连
 	MaxIdleConns    int    `mapstructure:"maxIdleConns"`
 	MaxOpenConns    int    `mapstructure:"maxOpenConns"`
 	ConnMaxLifetime int    `mapstructure:"connMaxLifetime"` // 秒
