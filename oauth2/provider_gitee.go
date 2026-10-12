@@ -1,40 +1,37 @@
-package social
+package oauth2
 
 import (
 	"context"
 	"encoding/json"
 	"net/http"
 
-	"golang.org/x/oauth2"
+	xoauth2 "golang.org/x/oauth2"
 )
 
-// giteeDefaultScope 默认权限范围。
-const giteeDefaultScope = "user_info"
-
-// giteeProvider Gitee。端点固定写死：x/oauth2/endpoints 的 52 个平台里没有 Gitee。
+// giteeProvider Gitee。端点写死：x/oauth2/endpoints 的平台表里没有 Gitee。
 type giteeProvider struct{}
 
-func (giteeProvider) OAuth2Config(cfg SocialLoginConfig) (*oauth2.Config, error) {
+func (giteeProvider) oauthConfig(cfg ProviderConfig) (*xoauth2.Config, error) {
 	scopes := cfg.Scopes
 	if len(scopes) == 0 {
-		scopes = []string{giteeDefaultScope}
+		scopes = []string{"user_info"}
 	}
-	return &oauth2.Config{
+	return &xoauth2.Config{
 		ClientID:     cfg.ClientID,
 		ClientSecret: cfg.ClientSecret,
 		RedirectURL:  cfg.RedirectURI,
 		Scopes:       scopes,
-		Endpoint: oauth2.Endpoint{
+		Endpoint: xoauth2.Endpoint{
 			AuthURL:  "https://gitee.com/oauth/authorize",
 			TokenURL: "https://gitee.com/oauth/token",
 			// Gitee 要求 client 凭据放在参数体里，写死省掉 x/oauth2 的试探往返。
-			AuthStyle: oauth2.AuthStyleInParams,
+			AuthStyle: xoauth2.AuthStyleInParams,
 		},
 	}, nil
 }
 
-func (giteeProvider) FetchUser(ctx context.Context, _ SocialLoginConfig,
-	client *http.Client, tok *oauth2.Token) (*AuthUser, error) {
+func (giteeProvider) fetchUser(ctx context.Context, _ ProviderConfig,
+	client *http.Client, tok *xoauth2.Token) (*AuthUser, error) {
 
 	// id 用 json.Number 收：Gitee 返回的是数字，而 auth_id/open_id 是字符串列。
 	var u struct {

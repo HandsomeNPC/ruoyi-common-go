@@ -1,36 +1,35 @@
-package social
+package oauth2
 
 import (
 	"context"
 	"encoding/json"
 	"net/http"
 
-	"golang.org/x/oauth2"
+	xoauth2 "golang.org/x/oauth2"
 )
 
 // githubProvider GitHub。
 //
-// 端点与 x/oauth2/endpoints.GitHub 一致，但不 import 那个包：
-// 它只是三行 URL 常量的别名，为一个 var 多引一个包不值当，
-// 且写在此处与其余平台形状统一(gitee/maxkey/topiam 都得自己写)。
+// 端点与 x/oauth2/endpoints.GitHub 一致，但不 import 那个包：它只是三行 URL
+// 常量的别名，为一个 var 多引一个包不值当，且写在此处与其余平台形状统一。
 type githubProvider struct{}
 
-func (githubProvider) OAuth2Config(cfg SocialLoginConfig) (*oauth2.Config, error) {
-	return &oauth2.Config{
+func (githubProvider) oauthConfig(cfg ProviderConfig) (*xoauth2.Config, error) {
+	return &xoauth2.Config{
 		ClientID:     cfg.ClientID,
 		ClientSecret: cfg.ClientSecret,
 		RedirectURL:  cfg.RedirectURI,
 		// 不设默认 scope：授权地址默认不带 scope 参数。
 		Scopes: cfg.Scopes,
-		Endpoint: oauth2.Endpoint{
+		Endpoint: xoauth2.Endpoint{
 			AuthURL:  "https://github.com/login/oauth/authorize",
 			TokenURL: "https://github.com/login/oauth/access_token",
 		},
 	}, nil
 }
 
-func (githubProvider) FetchUser(ctx context.Context, _ SocialLoginConfig,
-	client *http.Client, tok *oauth2.Token) (*AuthUser, error) {
+func (githubProvider) fetchUser(ctx context.Context, _ ProviderConfig,
+	client *http.Client, tok *xoauth2.Token) (*AuthUser, error) {
 
 	var u struct {
 		ID     json.Number `json:"id"`
