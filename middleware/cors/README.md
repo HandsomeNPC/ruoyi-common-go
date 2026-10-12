@@ -34,7 +34,7 @@ trace.TraceIDWithConfig(cfg.TraceID),
 | `exposedHeaders`        | `["X-Request-Id","Content-Disposition","download-filename"]` | 允许前端 JS 读取的响应头。                              |
 | `maxAgeSeconds`         | `1800`                                                       | 预检结果缓存时长(秒)。                                  |
 
-`SetDefaults` / `Validate` 与其它中间件配置一致，供各模块 `config` 统一铺默认值与校验。
+默认值由 `CORSWithConfig` 注册时就地铺底，配置不合规直接 panic，调用方无需手动调 `SetDefaults` / `Validate`。
 
 ## 行为约定
 

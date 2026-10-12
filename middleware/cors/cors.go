@@ -7,10 +7,16 @@
 package cors
 
 import (
+	"fmt"
+
 	"github.com/gin-gonic/gin"
 )
 
-// CORSWithConfig 跨域中间件。
+// CORSWithConfig 跨域中间件。注册前就地铺兜底默认值并校验配置，不合规直接 panic，调用方无需手动校验。
 func CORSWithConfig(cfg CORSConfig) gin.HandlerFunc {
+	cfg.applyDefaults()
+	if err := cfg.validate(); err != nil {
+		panic(fmt.Sprintf("cors: %v", err))
+	}
 	return handler(cfg)
 }

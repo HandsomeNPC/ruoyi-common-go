@@ -3,8 +3,6 @@ package cors
 import (
 	"fmt"
 	"time"
-
-	"github.com/spf13/viper"
 )
 
 // defaultCORSMaxAgeSeconds 预检结果缓存时长。
@@ -40,8 +38,43 @@ func (c CORSConfig) MaxAge() time.Duration {
 	return time.Duration(c.MaxAgeSeconds) * time.Second
 }
 
-// DefaultCORS 返回跨域默认配置。
-func DefaultCORS() CORSConfig {
+// applyDefaults 就地铺兜底默认值。全零配置（yaml 未写 cors 段）直接铺整份默认；
+// 否则只补空字段，尊重调用方显式设置的 bool。
+func (c *CORSConfig) applyDefaults() {
+	if len(c.AllowedOriginPatterns) == 0 && len(c.AllowedMethods) == 0 && len(c.AllowedHeaders) == 0 {
+		*c = defaultCORSConfig()
+		return
+	}
+	if len(c.AllowedOriginPatterns) == 0 {
+		c.AllowedOriginPatterns = []string{"*"}
+	}
+	if len(c.AllowedMethods) == 0 {
+		c.AllowedMethods = []string{"*"}
+	}
+	if len(c.AllowedHeaders) == 0 {
+		c.AllowedHeaders = []string{"*"}
+	}
+	if len(c.ExposedHeaders) == 0 {
+		c.ExposedHeaders = []string{traceIDHeader, "Content-Disposition", "download-filename"}
+	}
+	if c.MaxAgeSeconds == 0 {
+		c.MaxAgeSeconds = defaultCORSMaxAgeSeconds
+	}
+}
+
+// validate 校验配置合理性，注册期调用，不合规直接 panic。
+func (c CORSConfig) validate() error {
+	if c.MaxAgeSeconds < 0 {
+		return fmt.Errorf("cors.maxAgeSeconds 不能为负数")
+	}
+	if len(c.AllowedOriginPatterns) == 0 {
+		return fmt.Errorf("cors.allowedOriginPatterns 未配置")
+	}
+	return nil
+}
+
+// defaultCORSConfig 返回整份兜底默认配置。
+func defaultCORSConfig() CORSConfig {
 	return CORSConfig{
 		AllowCredentials:      true,
 		AllowedOriginPatterns: []string{"*"},
@@ -50,25 +83,4 @@ func DefaultCORS() CORSConfig {
 		ExposedHeaders:        []string{traceIDHeader, "Content-Disposition", "download-filename"},
 		MaxAgeSeconds:         defaultCORSMaxAgeSeconds,
 	}
-}
-
-// SetDefaults 把默认值铺给 viper。
-func (c CORSConfig) SetDefaults(v *viper.Viper) {
-	v.SetDefault("cors.allowCredentials", c.AllowCredentials)
-	v.SetDefault("cors.allowedOriginPatterns", c.AllowedOriginPatterns)
-	v.SetDefault("cors.allowedMethods", c.AllowedMethods)
-	v.SetDefault("cors.allowedHeaders", c.AllowedHeaders)
-	v.SetDefault("cors.exposedHeaders", c.ExposedHeaders)
-	v.SetDefault("cors.maxAgeSeconds", c.MaxAgeSeconds)
-}
-
-// Validate 校验跨域配置。
-func (c CORSConfig) Validate() error {
-	if c.MaxAgeSeconds < 0 {
-		return fmt.Errorf("cors.maxAgeSeconds 不能为负数")
-	}
-	if len(c.AllowedOriginPatterns) == 0 {
-		return fmt.Errorf("cors.allowedOriginPatterns 未配置")
-	}
-	return nil
 }
