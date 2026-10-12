@@ -1,4 +1,4 @@
-# excel
+# excelhelper
 
 结构体 tag 驱动的通用 xlsx 导出/导入，底层走 [xuri/excelize](https://github.com/qax-os/excelize)。
 
@@ -24,10 +24,10 @@ Inner  []string // 无 tag，不导出
 ## 导出
 
 ```go
-import "github.com/HandsomeNPC/ruoyi-common-go/excel"
+import "github.com/HandsomeNPC/ruoyi-common-go/excelhelper"
 
 // Export 把 rows 写成 xlsx 附件直接写进 gin 响应，sheetName 同时作下载文件名主体。
-if err := excel.Export(c, rows, "客户端管理"); err != nil {
+if err := excelhelper.Export(c, rows, "客户端管理"); err != nil {
 // 交给你项目的异常中间件渲染。本仓 RuoYi-Go-Vue-Plus 用 _ = c.Error(err) + Recover。
 _ = c.Error(err)
 return
@@ -39,26 +39,27 @@ return
 只想要字节流（不写 HTTP）用 `Write`：
 
 ```go
-buf, err := excel.Write(rows, excel.Options{SheetName: "客户端管理"})
+buf, err := excelhelper.Write(rows, excelhelper.Options{SheetName: "客户端管理"})
 ```
 
 ## 导入
 
 ```go
-rows, err := excel.Read[SysUserImportVo](r) // r: io.Reader
+rows, err := excelhelper.Read[SysUserImportVo](r) // r: io.Reader
 ```
 
 带 `excelDict` 的列做反向映射：单元格写"正常"换回"0"，直接写"0"也原样保留，两种填法都吃。
 
 ## 行数上限
 
-`excel.MaxRows = 100000`（不含表头）。超限时 `Write`/`Export` 返回 `*excel.TooManyRowsError{Count, Limit}`， **不静默截断**
+`excelhelper.MaxRows = 100000`（不含表头）。超限时 `Write`/`Export` 返回 `*excelhelper.TooManyRowsError{Count, Limit}`，
+**不静默截断**
 ——审计表少几行比导出失败更危险。
 
-建议查询时直接按 `excel.MaxRows+1` 取数提前判定，免得查了一大堆再被导出层拦掉：
+建议查询时直接按 `excelhelper.MaxRows+1` 取数提前判定，免得查了一大堆再被导出层拦掉：
 
 ```go
-rows, err := clientservice.QueryList(ctx, q, excel.MaxRows+1)
+rows, err := clientservice.QueryList(ctx, q, excelhelper.MaxRows+1)
 ```
 
 ## 错误如何回前端
@@ -67,7 +68,7 @@ rows, err := clientservice.QueryList(ctx, q, excel.MaxRows+1)
 的做法（供参考）：
 
 ```go
-var over *excel.TooManyRowsError
+var over *excelhelper.TooManyRowsError
 if errors.As(err, &over) {
 _ = c.Error(errs.New(response.CodeFail,
 fmt.Sprintf("导出数据量过大，最多 %d 行，请缩小查询范围后重试", over.Limit),

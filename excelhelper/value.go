@@ -1,4 +1,4 @@
-package excel
+package excelhelper
 
 import (
 	"fmt"

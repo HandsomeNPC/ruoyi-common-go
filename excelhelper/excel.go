@@ -1,4 +1,4 @@
-// Package excel 提供结构体 tag 驱动的通用 xlsx 导出。
+// Package excelhelper 提供结构体 tag 驱动的通用 xlsx 导出。
 //
 // 在 VO 字段上打 `excel:"表头"` 即导出该列，列序即字段声明序；
 // 需要值映射时再加 `excelDict:"0=正常,1=停用"`。没打 tag 的字段不导出。
@@ -12,7 +12,7 @@
 // 整个工作簿先在内存里建满再落笔，见 Export 的说明。
 // 行数上限见 MaxRows：真要导出更大的量需改用 excelize 的 StreamWriter，
 // 但它要求列宽在写行之前定好，与这里按内容自适应列宽的做法冲突。
-package excel
+package excelhelper
 
 import (
 	"bytes"
@@ -34,7 +34,7 @@ type TooManyRowsError struct {
 }
 
 func (e *TooManyRowsError) Error() string {
-	return fmt.Sprintf("excel: 待导出 %d 行超出上限 %d", e.Count, e.Limit)
+	return fmt.Sprintf("excelhelper: 待导出 %d 行超出上限 %d", e.Count, e.Limit)
 }
 
 // headerNumFmt 内置的文本格式号，表头按文本存，避免 "1-2" 这类表头被识别成日期。
@@ -92,7 +92,7 @@ func Write[T any](rows []T, opts Options) (*bytes.Buffer, error) {
 
 	// NewFile 建的表叫 Sheet1，改名而非新建，免得留一张空表。
 	if err := f.SetSheetName("Sheet1", sheet); err != nil {
-		return nil, fmt.Errorf("excel: 工作表名 %q 无效: %w", sheet, err)
+		return nil, fmt.Errorf("excelhelper: 工作表名 %q 无效: %w", sheet, err)
 	}
 
 	headers := make([]any, len(cols))
@@ -100,7 +100,7 @@ func Write[T any](rows []T, opts Options) (*bytes.Buffer, error) {
 		headers[i] = c.header
 	}
 	if err := f.SetSheetRow(sheet, "A1", &headers); err != nil {
-		return nil, fmt.Errorf("excel: 写表头失败: %w", err)
+		return nil, fmt.Errorf("excelhelper: 写表头失败: %w", err)
 	}
 
 	// widths 记录每列的最宽内容，边写边量，省一趟遍历。
@@ -132,10 +132,10 @@ func Write[T any](rows []T, opts Options) (*bytes.Buffer, error) {
 		}
 		axis, err := excelize.CoordinatesToCellName(1, next)
 		if err != nil {
-			return nil, fmt.Errorf("excel: 计算单元格坐标失败: %w", err)
+			return nil, fmt.Errorf("excelhelper: 计算单元格坐标失败: %w", err)
 		}
 		if err := f.SetSheetRow(sheet, axis, &cells); err != nil {
-			return nil, fmt.Errorf("excel: 写第 %d 行失败: %w", next, err)
+			return nil, fmt.Errorf("excelhelper: 写第 %d 行失败: %w", next, err)
 		}
 		next++
 	}
@@ -149,7 +149,7 @@ func Write[T any](rows []T, opts Options) (*bytes.Buffer, error) {
 
 	buf, err := f.WriteToBuffer()
 	if err != nil {
-		return nil, fmt.Errorf("excel: 生成工作簿失败: %w", err)
+		return nil, fmt.Errorf("excelhelper: 生成工作簿失败: %w", err)
 	}
 	return buf, nil
 }
@@ -165,14 +165,14 @@ func styleHeader(f *excelize.File, sheet string, cols int) error {
 		Alignment: &excelize.Alignment{Horizontal: "center", Vertical: "center"},
 	})
 	if err != nil {
-		return fmt.Errorf("excel: 创建表头样式失败: %w", err)
+		return fmt.Errorf("excelhelper: 创建表头样式失败: %w", err)
 	}
 	last, err := excelize.CoordinatesToCellName(cols, 1)
 	if err != nil {
-		return fmt.Errorf("excel: 计算表头范围失败: %w", err)
+		return fmt.Errorf("excelhelper: 计算表头范围失败: %w", err)
 	}
 	if err := f.SetCellStyle(sheet, "A1", last, style); err != nil {
-		return fmt.Errorf("excel: 设置表头样式失败: %w", err)
+		return fmt.Errorf("excelhelper: 设置表头样式失败: %w", err)
 	}
 	return nil
 }
@@ -182,10 +182,10 @@ func setWidths(f *excelize.File, sheet string, widths []float64) error {
 	for i, w := range widths {
 		name, err := excelize.ColumnNumberToName(i + 1)
 		if err != nil {
-			return fmt.Errorf("excel: 计算列名失败: %w", err)
+			return fmt.Errorf("excelhelper: 计算列名失败: %w", err)
 		}
 		if err := f.SetColWidth(sheet, name, name, clampWidth(w)); err != nil {
-			return fmt.Errorf("excel: 设置列 %s 宽度失败: %w", name, err)
+			return fmt.Errorf("excelhelper: 设置列 %s 宽度失败: %w", name, err)
 		}
 	}
 	return nil

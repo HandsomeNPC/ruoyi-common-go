@@ -1,4 +1,4 @@
-package excel
+package excelhelper
 
 import (
 	"fmt"
@@ -42,7 +42,7 @@ func Export[T any](c *gin.Context, rows []T, sheetName string) error {
 	if _, err := c.Writer.Write(buf.Bytes()); err != nil {
 		// 走到这里响应已开写，返回的错误只能进日志：
 		// Recover 判定 Written() 后不会再渲染，也不该渲染——那会把 JSON 拼到文件尾。
-		return fmt.Errorf("excel: 写响应失败: %w", err)
+		return fmt.Errorf("excelhelper: 写响应失败: %w", err)
 	}
 	return nil
 }

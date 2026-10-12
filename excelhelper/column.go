@@ -1,4 +1,4 @@
-package excel
+package excelhelper
 
 import (
 	"fmt"
@@ -46,7 +46,7 @@ func columnsOf[T any]() ([]column, error) {
 		t = t.Elem()
 	}
 	if t.Kind() != reflect.Struct {
-		return nil, fmt.Errorf("excel: 导出类型须是结构体，得到 %s", t.Kind())
+		return nil, fmt.Errorf("excelhelper: 导出类型须是结构体，得到 %s", t.Kind())
 	}
 
 	if cached, ok := columnCache.Load(t); ok {
@@ -56,7 +56,7 @@ func columnsOf[T any]() ([]column, error) {
 
 	cols, err := parseColumns(t, nil)
 	if err == nil && len(cols) == 0 {
-		err = fmt.Errorf("excel: 类型 %s 没有任何带 %q tag 的字段", t.Name(), tagHeader)
+		err = fmt.Errorf("excelhelper: 类型 %s 没有任何带 %q tag 的字段", t.Name(), tagHeader)
 	}
 	columnCache.Store(t, columnsResult{columns: cols, err: err})
 	return cols, err
@@ -90,12 +90,12 @@ func parseColumns(t reflect.Type, prefix []int) ([]column, error) {
 		}
 		// 未导出字段反射取不到值，与其导出一整列空白不如直接报错。
 		if f.PkgPath != "" {
-			return nil, fmt.Errorf("excel: 字段 %s.%s 未导出，不能带 %q tag", t.Name(), f.Name, tagHeader)
+			return nil, fmt.Errorf("excelhelper: 字段 %s.%s 未导出，不能带 %q tag", t.Name(), f.Name, tagHeader)
 		}
 
 		dict, err := parseDict(f.Tag.Get(tagDict))
 		if err != nil {
-			return nil, fmt.Errorf("excel: 字段 %s.%s 的 %q tag 无效: %w", t.Name(), f.Name, tagDict, err)
+			return nil, fmt.Errorf("excelhelper: 字段 %s.%s 的 %q tag 无效: %w", t.Name(), f.Name, tagDict, err)
 		}
 		cols = append(cols, column{header: header, index: index, dict: dict})
 	}

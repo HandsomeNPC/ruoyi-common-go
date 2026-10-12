@@ -1,4 +1,4 @@
-package excel
+package excelhelper
 
 import (
 	"fmt"
@@ -26,7 +26,7 @@ func Read[T any](r io.Reader) ([]T, error) {
 		t = t.Elem()
 	}
 	if t.Kind() != reflect.Struct {
-		return nil, fmt.Errorf("excel: 导入类型须是结构体，得到 %s", t.Kind())
+		return nil, fmt.Errorf("excelhelper: 导入类型须是结构体，得到 %s", t.Kind())
 	}
 
 	cols, err := columnsOf[T]()
@@ -36,14 +36,14 @@ func Read[T any](r io.Reader) ([]T, error) {
 
 	f, err := excelize.OpenReader(r)
 	if err != nil {
-		return nil, fmt.Errorf("excel: 打开导入文件失败: %w", err)
+		return nil, fmt.Errorf("excelhelper: 打开导入文件失败: %w", err)
 	}
 	defer func() { _ = f.Close() }()
 
 	sheet := f.GetSheetName(0)
 	rows, err := f.GetRows(sheet)
 	if err != nil {
-		return nil, fmt.Errorf("excel: 读取工作表 %q 失败: %w", sheet, err)
+		return nil, fmt.Errorf("excelhelper: 读取工作表 %q 失败: %w", sheet, err)
 	}
 	if len(rows) == 0 {
 		return []T{}, nil
@@ -75,7 +75,7 @@ func Read[T any](r io.Reader) ([]T, error) {
 				continue
 			}
 			if err := setCell(v, c, row[col]); err != nil {
-				return nil, fmt.Errorf("excel: 第 %d 行 %q 列 %q 解析失败: %w",
+				return nil, fmt.Errorf("excelhelper: 第 %d 行 %q 列 %q 解析失败: %w",
 					r+1, c.header, row[col], err)
 			}
 		}
