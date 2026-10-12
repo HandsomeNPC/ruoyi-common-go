@@ -1,4 +1,4 @@
-package encrypt
+package apiencrypt
 
 import (
 	"fmt"
@@ -11,7 +11,7 @@ const DefaultAPIEncryptHeader = "encrypt-key"
 
 // APIEncryptConfig 接口加解密配置
 type APIEncryptConfig struct {
-	// Enabled 是否启用。false 时 encrypt.Init 返回 no-op，所有注解直通。
+	// Enabled 是否启用。false 时中间件直通，不做任何加解密。
 	Enabled bool `mapstructure:"enabled"`
 	// HeaderFlag 传递 AES 密钥的请求/响应头名，为空表示用 DefaultAPIEncryptHeader。
 	HeaderFlag string `mapstructure:"headerFlag"`

@@ -1,5 +1,5 @@
-// Package encrypt 加解密原语。
-package encrypt
+// Package apiencrypt 接口加解密原语与中间件。
+package apiencrypt
 
 import (
 	"crypto/aes"
@@ -26,7 +26,7 @@ func EncryptByBase64(data string) string {
 func DecryptByBase64(data string) (string, error) {
 	out, err := base64.StdEncoding.DecodeString(data)
 	if err != nil {
-		return "", fmt.Errorf("encrypt: base64 解码失败: %w", err)
+		return "", fmt.Errorf("apiencrypt: base64 解码失败: %w", err)
 	}
 	return string(out), nil
 }
@@ -49,11 +49,11 @@ func DecryptByAES(data, password string) (string, error) {
 
 	raw, err := base64.StdEncoding.DecodeString(data)
 	if err != nil {
-		return "", fmt.Errorf("encrypt: AES 密文 base64 解码失败: %w", err)
+		return "", fmt.Errorf("apiencrypt: AES 密文 base64 解码失败: %w", err)
 	}
 	size := block.BlockSize()
 	if len(raw) == 0 || len(raw)%size != 0 {
-		return "", fmt.Errorf("encrypt: AES 密文长度 %d 不是分组长度 %d 的正整数倍", len(raw), size)
+		return "", fmt.Errorf("apiencrypt: AES 密文长度 %d 不是分组长度 %d 的正整数倍", len(raw), size)
 	}
 
 	plain, err := pkcs7Unpad(ecbDecrypt(block, raw), size)
@@ -66,7 +66,7 @@ func DecryptByAES(data, password string) (string, error) {
 // aesKey 校验密钥长度并构造分组密码。
 func aesKey(password string) (cipher.Block, error) {
 	if password == "" {
-		return nil, fmt.Errorf("encrypt: AES 需要传入秘钥信息")
+		return nil, fmt.Errorf("apiencrypt: AES 需要传入秘钥信息")
 	}
 	key := []byte(password)
 
@@ -78,12 +78,12 @@ func aesKey(password string) (cipher.Block, error) {
 		}
 	}
 	if !ok {
-		return nil, fmt.Errorf("encrypt: AES 秘钥长度要求为 16/24/32 字节，当前为 %d", len(key))
+		return nil, fmt.Errorf("apiencrypt: AES 秘钥长度要求为 16/24/32 字节，当前为 %d", len(key))
 	}
 
 	block, err := aes.NewCipher(key)
 	if err != nil {
-		return nil, fmt.Errorf("encrypt: 构造 AES 失败: %w", err)
+		return nil, fmt.Errorf("apiencrypt: 构造 AES 失败: %w", err)
 	}
 	return block, nil
 }
@@ -122,16 +122,16 @@ func pkcs7Pad(src []byte, size int) []byte {
 // pkcs7Unpad 校验并剥掉 PKCS#7 填充。
 func pkcs7Unpad(src []byte, size int) ([]byte, error) {
 	if len(src) == 0 || len(src)%size != 0 {
-		return nil, fmt.Errorf("encrypt: AES 解密结果长度 %d 非法", len(src))
+		return nil, fmt.Errorf("apiencrypt: AES 解密结果长度 %d 非法", len(src))
 	}
 
 	n := int(src[len(src)-1])
 	if n == 0 || n > size {
-		return nil, fmt.Errorf("encrypt: AES 填充非法（秘钥可能不匹配）")
+		return nil, fmt.Errorf("apiencrypt: AES 填充非法（秘钥可能不匹配）")
 	}
 	for _, b := range src[len(src)-n:] {
 		if int(b) != n {
-			return nil, fmt.Errorf("encrypt: AES 填充非法（秘钥可能不匹配）")
+			return nil, fmt.Errorf("apiencrypt: AES 填充非法（秘钥可能不匹配）")
 		}
 	}
 	return src[:len(src)-n], nil
@@ -141,7 +141,7 @@ func pkcs7Unpad(src []byte, size int) ([]byte, error) {
 func ParseRSAPrivateKey(base64Key string) (*rsa.PrivateKey, error) {
 	der, err := base64.StdEncoding.DecodeString(base64Key)
 	if err != nil {
-		return nil, fmt.Errorf("encrypt: RSA 私钥 base64 解码失败: %w", err)
+		return nil, fmt.Errorf("apiencrypt: RSA 私钥 base64 解码失败: %w", err)
 	}
 
 	parsed, err := x509.ParsePKCS8PrivateKey(der)
@@ -149,12 +149,12 @@ func ParseRSAPrivateKey(base64Key string) (*rsa.PrivateKey, error) {
 		if k, err1 := x509.ParsePKCS1PrivateKey(der); err1 == nil {
 			return checkRSAKeySize(k)
 		}
-		return nil, fmt.Errorf("encrypt: RSA 私钥格式错误（需为 base64 编码的 PKCS#8）: %w", err)
+		return nil, fmt.Errorf("apiencrypt: RSA 私钥格式错误（需为 base64 编码的 PKCS#8）: %w", err)
 	}
 
 	key, ok := parsed.(*rsa.PrivateKey)
 	if !ok {
-		return nil, fmt.Errorf("encrypt: 私钥不是 RSA 密钥（实际为 %T）", parsed)
+		return nil, fmt.Errorf("apiencrypt: 私钥不是 RSA 密钥（实际为 %T）", parsed)
 	}
 	return checkRSAKeySize(key)
 }
@@ -163,20 +163,20 @@ func ParseRSAPrivateKey(base64Key string) (*rsa.PrivateKey, error) {
 func ParseRSAPublicKey(base64Key string) (*rsa.PublicKey, error) {
 	der, err := base64.StdEncoding.DecodeString(base64Key)
 	if err != nil {
-		return nil, fmt.Errorf("encrypt: RSA 公钥 base64 解码失败: %w", err)
+		return nil, fmt.Errorf("apiencrypt: RSA 公钥 base64 解码失败: %w", err)
 	}
 
 	parsed, err := x509.ParsePKIXPublicKey(der)
 	if err != nil {
-		return nil, fmt.Errorf("encrypt: RSA 公钥格式错误（需为 base64 编码的 X.509 SubjectPublicKeyInfo）: %w", err)
+		return nil, fmt.Errorf("apiencrypt: RSA 公钥格式错误（需为 base64 编码的 X.509 SubjectPublicKeyInfo）: %w", err)
 	}
 
 	key, ok := parsed.(*rsa.PublicKey)
 	if !ok {
-		return nil, fmt.Errorf("encrypt: 公钥不是 RSA 密钥（实际为 %T）", parsed)
+		return nil, fmt.Errorf("apiencrypt: 公钥不是 RSA 密钥（实际为 %T）", parsed)
 	}
 	if size := key.N.BitLen(); size < MinRSAKeySize {
-		return nil, fmt.Errorf("encrypt: RSA 密钥长度不能低于 %d 位，当前为 %d 位", MinRSAKeySize, size)
+		return nil, fmt.Errorf("apiencrypt: RSA 密钥长度不能低于 %d 位，当前为 %d 位", MinRSAKeySize, size)
 	}
 	return key, nil
 }
@@ -184,7 +184,7 @@ func ParseRSAPublicKey(base64Key string) (*rsa.PublicKey, error) {
 // checkRSAKeySize 校验私钥位数。
 func checkRSAKeySize(key *rsa.PrivateKey) (*rsa.PrivateKey, error) {
 	if size := key.N.BitLen(); size < MinRSAKeySize {
-		return nil, fmt.Errorf("encrypt: RSA 密钥长度不能低于 %d 位，当前为 %d 位", MinRSAKeySize, size)
+		return nil, fmt.Errorf("apiencrypt: RSA 密钥长度不能低于 %d 位，当前为 %d 位", MinRSAKeySize, size)
 	}
 	return key, nil
 }
@@ -192,24 +192,24 @@ func checkRSAKeySize(key *rsa.PrivateKey) (*rsa.PrivateKey, error) {
 // DecryptByRSA 用私钥解密 base64 密文。
 func DecryptByRSA(data string, key *rsa.PrivateKey) (string, error) {
 	if key == nil {
-		return "", fmt.Errorf("encrypt: RSA 需要传入私钥进行解密")
+		return "", fmt.Errorf("apiencrypt: RSA 需要传入私钥进行解密")
 	}
 
 	raw, err := base64.StdEncoding.DecodeString(data)
 	if err != nil {
-		return "", fmt.Errorf("encrypt: RSA 密文 base64 解码失败: %w", err)
+		return "", fmt.Errorf("apiencrypt: RSA 密文 base64 解码失败: %w", err)
 	}
 
 	k := key.Size()
 	if len(raw) == 0 || len(raw)%k != 0 {
-		return "", fmt.Errorf("encrypt: RSA 密文长度 %d 不是密钥长度 %d 的正整数倍", len(raw), k)
+		return "", fmt.Errorf("apiencrypt: RSA 密文长度 %d 不是密钥长度 %d 的正整数倍", len(raw), k)
 	}
 
 	var out []byte
 	for i := 0; i < len(raw); i += k {
 		block, err := rsa.DecryptPKCS1v15(nil, key, raw[i:i+k])
 		if err != nil {
-			return "", fmt.Errorf("encrypt: RSA 解密失败: %w", err)
+			return "", fmt.Errorf("apiencrypt: RSA 解密失败: %w", err)
 		}
 		out = append(out, block...)
 	}
@@ -219,13 +219,13 @@ func DecryptByRSA(data string, key *rsa.PrivateKey) (string, error) {
 // EncryptByRSA 用公钥加密并返回 base64 密文。
 func EncryptByRSA(data string, key *rsa.PublicKey) (string, error) {
 	if key == nil {
-		return "", fmt.Errorf("encrypt: RSA 需要传入公钥进行加密")
+		return "", fmt.Errorf("apiencrypt: RSA 需要传入公钥进行加密")
 	}
 
 	src := []byte(data)
 	max := key.Size() - 11
 	if max <= 0 {
-		return "", fmt.Errorf("encrypt: RSA 密钥长度 %d 过短", key.Size())
+		return "", fmt.Errorf("apiencrypt: RSA 密钥长度 %d 过短", key.Size())
 	}
 
 	var out []byte
@@ -233,7 +233,7 @@ func EncryptByRSA(data string, key *rsa.PublicKey) (string, error) {
 		end := min(i+max, len(src))
 		block, err := rsa.EncryptPKCS1v15(rand.Reader, key, src[i:end])
 		if err != nil {
-			return "", fmt.Errorf("encrypt: RSA 加密失败: %w", err)
+			return "", fmt.Errorf("apiencrypt: RSA 加密失败: %w", err)
 		}
 		out = append(out, block...)
 	}
@@ -244,7 +244,7 @@ func EncryptByRSA(data string, key *rsa.PublicKey) (string, error) {
 func GenerateAESPassword() (string, error) {
 	buf := make([]byte, 24)
 	if _, err := rand.Read(buf); err != nil {
-		return "", fmt.Errorf("encrypt: 生成 AES 秘钥失败: %w", err)
+		return "", fmt.Errorf("apiencrypt: 生成 AES 秘钥失败: %w", err)
 	}
 	return base64.StdEncoding.EncodeToString(buf), nil
 }

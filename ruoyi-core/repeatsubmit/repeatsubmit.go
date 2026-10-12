@@ -107,7 +107,7 @@ func get() *Submitter {
 
 // RepeatSubmit 防重复提交注解。interval 为 0、message 为空时取默认值；interval < 1 秒注册期 panic。
 //
-// 须排在 encrypt.ApiEncrypt() 之后：取到的请求体须是解密后的明文，指纹才稳定
+// 须排在 apiencrypt 之后：取到的请求体须是解密后的明文，指纹才稳定
 // （密文每次随机 AES 密钥，同样入参会算出不同指纹，防重直接失效）。
 func RepeatSubmit(interval time.Duration, message string) gin.HandlerFunc {
 	o := newOptions(interval, message)

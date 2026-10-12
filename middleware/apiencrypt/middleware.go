@@ -1,8 +1,12 @@
-// api_encrypt.go 接口加解密的注解（装饰器）层，对照 sa-token-go 的注解形式
-// （sagin.CheckPermission）。
-// 初始化对照 redis.Init：encrypt.Init(cfg) 收 APIEncryptConfig，
-// 解析密钥并设包级全局；路由用包级 encrypt.ApiEncrypt() / ApiEncryptWithResponse()。
-package encrypt
+// Package apiencrypt 接口加解密中间件。
+//
+// RSA 协商 AES 密钥、AES 加解密报文体：POST/PUT 命中注解且带密钥头则用配置的 RSA 私钥解出
+// AES 密钥并解密请求体，可选再用公钥随机生成 AES 密钥加密响应体。!Enabled 时中间件直通。
+//
+// 自包含、不引 ruoyi-core/middleware 与 response：失败用 fmt 直写 {code,msg,data} JSON，
+// 不走 errs + 全局 Recover 兜底，免去 errs 依赖与「Abort 后等 Recover 才落响应」的隐式时序。
+// 响应码与原 errs 路径一致：缺密钥头 403，解密/加密失败回落 500。
+package apiencrypt
 
 import (
 	"bytes"
@@ -13,20 +17,16 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	"sync"
 
 	"github.com/gin-gonic/gin"
-
-	"github.com/HandsomeNPC/ruoyi-common-go/ruoyi-core/errs"
-	"github.com/HandsomeNPC/ruoyi-common-go/ruoyi-core/response"
 )
 
 const (
-	defaultHeader     = "encrypt-key"    // 默认密钥头名
-	defaultMaxBodyAge = 10 * 1024 * 1024 // 默认密文上限 10MB
+	defaultHeader  = "encrypt-key"    // 默认密钥头名
+	defaultMaxBody = 10 * 1024 * 1024 // 默认密文上限 10MB
 )
 
-// Crypto 接口加解密器，持有解析后的密钥。
+// Crypto 接口加解密器，持有解析后的密钥。!Enabled 时为零值，run 直通。
 type Crypto struct {
 	header  string
 	priv    *rsa.PrivateKey
@@ -34,74 +34,46 @@ type Crypto struct {
 	maxSize int64
 }
 
-// New 解析配置构造 Crypto。!Enabled 时返回 no-op（注解直通）。对照 redis.New。
-func New(cfg APIEncryptConfig) (*Crypto, error) {
+// newCrypto 解析配置构造 Crypto。!Enabled 返回零值（中间件直通）；密钥解析失败 panic
+// （启动期 fail-fast，与原 encrypt.Init 行为一致）。
+func newCrypto(cfg APIEncryptConfig) *Crypto {
 	if !cfg.Enabled {
-		return &Crypto{}, nil
+		return &Crypto{}
 	}
 	priv, err := ParseRSAPrivateKey(cfg.PrivateKey)
 	if err != nil {
-		return nil, err
+		panic(fmt.Errorf("apiencrypt: 初始化失败: %w", err))
 	}
 	var pub *rsa.PublicKey
 	if cfg.PublicKey != "" {
 		pub, err = ParseRSAPublicKey(cfg.PublicKey)
 		if err != nil {
-			return nil, err
+			panic(fmt.Errorf("apiencrypt: 初始化失败: %w", err))
 		}
 	}
 	header := cfg.HeaderFlag
 	if header == "" {
 		header = defaultHeader
 	}
-	return &Crypto{header: header, priv: priv, pub: pub, maxSize: defaultMaxBodyAge}, nil
+	return &Crypto{header: header, priv: priv, pub: pub, maxSize: defaultMaxBody}
 }
 
-// 包级默认实例（对照 redis.defaultClient）。
-var (
-	mu            sync.RWMutex
-	defaultCrypto *Crypto
-)
-
-// Init 按传入的 APIEncryptConfig 构造并设包级默认实例。
-// 必须在 config.Load 之后调用。密钥解析失败直接 panic（启动期 fail-fast）。
-func Init(cfg APIEncryptConfig) {
-	crypto, err := New(cfg)
-	if err != nil {
-		panic(fmt.Errorf("encrypt: 初始化失败: %w", err))
-	}
-	mu.Lock()
-	defaultCrypto = crypto
-	mu.Unlock()
-	log.Printf("[encrypt] 已就绪: enabled=%t header=%s", cfg.Enabled, crypto.header)
+// APIEncryptWithConfig 请求解密中间件：POST/PUT 命中注解则要求带密钥头并解密请求体，未带则 403。
+func APIEncryptWithConfig(cfg APIEncryptConfig) gin.HandlerFunc {
+	e := newCrypto(cfg)
+	return func(c *gin.Context) { e.run(c, false) }
 }
 
-// getCrypto 返回包级默认实例，未调用 Init 会 panic。对照 redis.Client。
-func getCrypto() *Crypto {
-	mu.RLock()
-	c := defaultCrypto
-	mu.RUnlock()
-	if c == nil {
-		panic("encrypt: 尚未初始化，请先调用 encrypt.Init")
-	}
-	return c
-}
-
-// ApiEncrypt 请求解密注解（包级，对照 sagin.CheckPermission）。
-// POST/PUT 带 header 则解密请求体，未带则 403。
-func ApiEncrypt() gin.HandlerFunc {
-	return func(c *gin.Context) { getCrypto().run(c, false) }
-}
-
-// ApiEncryptWithResponse 请求解密 + 响应加密注解。
-func ApiEncryptWithResponse() gin.HandlerFunc {
-	return func(c *gin.Context) { getCrypto().run(c, true) }
+// APIEncryptWithResponseWithConfig 请求解密 + 响应加密中间件。
+func APIEncryptWithResponseWithConfig(cfg APIEncryptConfig) gin.HandlerFunc {
+	e := newCrypto(cfg)
+	return func(c *gin.Context) { e.run(c, true) }
 }
 
 // run 执行加解密。
 func (e *Crypto) run(c *gin.Context, withResponse bool) {
 	if e.priv == nil {
-		// 未启用（!Enabled）：注解直通，不做任何加解密。
+		// 未启用（!Enabled）：中间件直通，不做任何加解密。
 		c.Next()
 		return
 	}
@@ -109,10 +81,9 @@ func (e *Crypto) run(c *gin.Context, withResponse bool) {
 		headerValue := strings.TrimSpace(c.GetHeader(e.header))
 		if headerValue == "" {
 			// 命中加密注解却未带密钥头 → 403。
-			log.Printf("[encrypt] %s %s 要求加密传输但未携带 %s 头",
+			log.Printf("[apiencrypt] %s %s 要求加密传输但未携带 %s 头",
 				c.Request.Method, c.Request.URL.Path, e.header)
-			_ = c.Error(errs.New(response.CodeForbidden, "没有访问权限，请联系管理员授权", ""))
-			c.Abort()
+			writeFail(c, 403, "没有访问权限，请联系管理员授权")
 			return
 		}
 		if !e.decryptRequest(c, headerValue) {
@@ -167,7 +138,7 @@ func (e *Crypto) decryptRequest(c *gin.Context, headerValue string) bool {
 	c.Request.Body = io.NopCloser(bytes.NewReader(body))
 	c.Request.ContentLength = int64(len(body))
 	c.Request.Header.Set("Content-Type", "application/json")
-	// 同步更新 BodyBytesKey：RepeatableBody 在本注解之前已缓存密文，此处覆盖为明文，
+	// 同步更新 BodyBytesKey：RepeatableBody 在本中间件之前已缓存密文，此处覆盖为明文，
 	// 让下游 c.Get(gin.BodyBytesKey) 取到的是明文。
 	c.Set(gin.BodyBytesKey, body)
 	return true
@@ -176,9 +147,8 @@ func (e *Crypto) decryptRequest(c *gin.Context, headerValue string) bool {
 // encryptResponse 缓冲响应体，结束后整体加密再写出。
 func (e *Crypto) encryptResponse(c *gin.Context) {
 	if e.pub == nil {
-		log.Printf("[encrypt] %s 配置了响应加密但未提供公钥", c.Request.URL.Path)
-		_ = c.Error(errs.New(0, "响应加密失败", ""))
-		c.Abort()
+		log.Printf("[apiencrypt] %s 配置了响应加密但未提供公钥", c.Request.URL.Path)
+		writeFail(c, 500, "响应加密失败")
 		return
 	}
 	aesPassword, err := GenerateAESPassword()
@@ -210,7 +180,7 @@ func (e *Crypto) encryptResponse(c *gin.Context) {
 	cipherText, err := EncryptByAES(buf.body.String(), aesPassword)
 	if err != nil {
 		// 加密失败绝不能退回写明文，丢弃响应体并回错误。
-		log.Printf("[encrypt] %s 响应加密失败,已丢弃响应体: %v", c.Request.URL.Path, err)
+		log.Printf("[apiencrypt] %s 响应加密失败,已丢弃响应体: %v", c.Request.URL.Path, err)
 		buf.discardAndFail(e.header)
 		return
 	}
@@ -230,18 +200,24 @@ func unwrapJSONString(b []byte) string {
 	return string(b)
 }
 
-// fail 记录明细并回请求解密失败的统一文案。
-func (e *Crypto) fail(c *gin.Context, detail string) {
-	log.Printf("[encrypt] %s %s 解密失败: %s", c.Request.Method, c.Request.URL.Path, detail)
-	_ = c.Error(errs.New(0, "请求解密失败", ""))
+// writeFail 直写失败 JSON 并终止链：HTTP 恒 200，body code/msg 由参数给。
+// 不定义 envelope 类型、不引 ruoyi-core/response，按项目统一 {code,msg,data} 形态用 fmt 拼。
+func writeFail(c *gin.Context, code int, msg string) {
+	c.Data(http.StatusOK, "application/json; charset=utf-8",
+		[]byte(fmt.Sprintf(`{"code":%d,"msg":"%s","data":null}`, code, msg)))
 	c.Abort()
+}
+
+// fail 记录明细并回请求解密失败的统一文案。响应码与原 errs.New(0,...) 经 Recover 回落 500 一致。
+func (e *Crypto) fail(c *gin.Context, detail string) {
+	log.Printf("[apiencrypt] %s %s 解密失败: %s", c.Request.Method, c.Request.URL.Path, detail)
+	writeFail(c, 500, "请求解密失败")
 }
 
 // failResponse 响应加密前置步骤失败时回错误，此时 handler 还没执行。
 func (e *Crypto) failResponse(c *gin.Context, detail string) {
-	log.Printf("[encrypt] %s 响应加密准备失败: %s", c.Request.URL.Path, detail)
-	_ = c.Error(errs.New(0, "响应加密失败", ""))
-	c.Abort()
+	log.Printf("[apiencrypt] %s 响应加密准备失败: %s", c.Request.URL.Path, detail)
+	writeFail(c, 500, "响应加密失败")
 }
 
 // cryptoWriter 缓冲响应体的 gin.ResponseWriter 包装。
@@ -267,8 +243,8 @@ func (w *cryptoWriter) discardAndFail(header string) {
 	h := w.ResponseWriter.Header()
 	h.Del(header) // 密钥头必须撤掉：响应体已不是用它加密的
 	h.Set("Content-Type", "application/json; charset=utf-8")
-	body := []byte(`{"code":500,"msg":"响应加密失败","data":null}`)
+	body := fmt.Sprintf(`{"code":%d,"msg":"%s","data":null}`, 500, "响应加密失败")
 	h.Set("Content-Length", strconv.Itoa(len(body)))
 	w.ResponseWriter.WriteHeader(http.StatusOK)
-	_, _ = w.ResponseWriter.Write(body)
+	_, _ = w.ResponseWriter.Write([]byte(body))
 }
