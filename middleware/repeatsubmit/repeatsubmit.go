@@ -27,12 +27,12 @@ const defaultTokenName = "Authorization"
 // maxFingerprintBody 参与指纹计算的请求体上限，超出部分不读。
 const maxFingerprintBody = 1 << 20 // 1MB
 
-// codeSuccess 业务成功码，与 ruoyi-core/response.CodeSuccess 同值。
-// 就地定义避免引 response 包（仅用此一个常量）。
+// codeSuccess 业务成功码，与 ruoyi-core/model/response.CodeSuccess 同值。
+// 就地定义避免引 ruoyi-core/model/response 包（仅用此一个常量）。
 const codeSuccess = 200
 
-// codeFail 业务失败码，与 ruoyi-core/response.CodeFail 同值；防重触发时回此码。
-// 就地定义避免引 response 包。
+// codeFail 业务失败码，与 ruoyi-core/model/response.CodeFail 同值；防重触发时回此码。
+// 就地定义避免引 ruoyi-core/model/response 包。
 const codeFail = 500
 
 // repeatSubmitKey 防重缓存键前缀，与 ruoyi-core/constant.RepeatSubmitKey 同值。

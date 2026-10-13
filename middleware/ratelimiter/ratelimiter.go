@@ -15,8 +15,8 @@ import (
 	goredis "github.com/redis/go-redis/v9"
 )
 
-// codeFail 业务失败码，与 ruoyi-core/response.CodeFail 同值；限流触发时回此码。
-// 就地定义避免引 response 包。
+// codeFail 业务失败码，与 ruoyi-core/model/response.CodeFail 同值；限流触发时回此码。
+// 就地定义避免引 ruoyi-core/model/response 包。
 const codeFail = 500
 
 // rateLimitKey 限流缓存键前缀，与 ruoyi-core/constant.RateLimitKey 同值。

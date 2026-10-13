@@ -53,7 +53,7 @@ panic；密钥解析失败同样 panic，启动期 fail-fast，与原 `encrypt.I
 - **解密 / 加密失败 → 500**：统一回 `{code:500,msg:"请求解密失败"|"响应加密失败",data:null}`
   （HTTP 200），明细只进日志。不走 `errs` + 全局 `Recover` 兜底，用 `fmt` 直写 JSON 终止链， 免去 `errs` 依赖与「Abort 后等
   Recover 才落响应」的隐式时序。响应码与原 `errs` 路径一致 （原 `errs.New(0, ...)` 经 `Recover` 亦回落 500）。 **本包不引
-  `ruoyi-core/response`**， 不定义 envelope 类型，按项目统一 `{code,msg,data}` 形态就地拼。
+  `ruoyi-core/model/response`**， 不定义 envelope 类型，按项目统一 `{code,msg,data}` 形态就地拼。
 - **密钥头在 `c.Next()` 之前写**：body 一开始输出头就发出去了，之后再写来不及。
 - **`c.Writer` 必须还原**：响应加密缓冲响应体，`c.Next()` 后还原 `c.Writer`，否则 `Recover`
   在本函数返回后渲染错误会落进已用完的缓冲区。
