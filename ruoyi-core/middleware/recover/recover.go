@@ -1,5 +1,5 @@
-// Package middleware 通用 Gin 中间件。
-package middleware
+// Package recover 全局异常中间件，覆盖 panic 与 handler 登记的 c.Error 两类错误。
+package recover
 
 import (
 	"errors"
