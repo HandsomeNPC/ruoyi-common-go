@@ -7,29 +7,32 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/redis/go-redis/v9"
 	"github.com/sa-tokens/sa-token-go/core/listener"
 	sagin "github.com/sa-tokens/sa-token-go/integrations/gin"
 	saredis "github.com/sa-tokens/sa-token-go/storage/redis"
-
-	"github.com/HandsomeNPC/ruoyi-common-go/redis"
-	"github.com/HandsomeNPC/ruoyi-common-go/ruoyi-core/constant"
 )
 
 // defaultTokenName 读取 token 的请求头名默认值。
 const defaultTokenName = "Authorization"
 
+// onlineTokenKeyPrefix 在线用户摘要的 Redis key 前缀。
+// 与 ruoyi-core/constant.OnlineTokenKeyPrefix 同值，这里就地复制以避免 satoken 反向依赖 constant。
+const onlineTokenKeyPrefix = "online_tokens:"
+
 // errMissingSecretKey 密钥未配置。随机兜底会让多进程各签各的、重启后旧 token 全失效。
 var errMissingSecretKey = errors.New("satoken.jwtSecretKey 未配置")
 
-// Init 按传入的 SATokenConfig 与包级 Redis 客户端构建全局 sa-token Manager。
+// Init 按传入的 SATokenConfig 与 Redis 客户端构建全局 sa-token Manager。
+// Redis 客户端由调用方注入（不直接 import redis 包，避免与各进程的 redis 初始化耦合）；
 // 须在 redis.Init 之后调用；配置非法直接 panic，fail-fast。
-func Init(cfg SATokenConfig) {
+func Init(cfg SATokenConfig, rdb *redis.Client) {
 	cfg.applyDefaults()
 	if err := cfg.validate(); err != nil {
 		panic(fmt.Errorf("satoken: 初始化失败: %w", err))
 	}
 
-	storage := saredis.NewStorageFromClient(redis.Client())
+	storage := saredis.NewStorageFromClient(rdb)
 
 	manager := sagin.NewBuilder().
 		Storage(storage).
@@ -45,18 +48,18 @@ func Init(cfg SATokenConfig) {
 	sagin.SetManager(manager)
 	// 登出/被踢/被顶时清 online_tokens 摘要。
 	// sa-token-go 在这些动作内部同步触发事件，故无需再于各调用点手删。
-	registerOnlineTokenCleanup(manager)
+	registerOnlineTokenCleanup(manager, rdb)
 	log.Printf("[satoken] 已就绪: tokenName=%s", cfg.TokenName)
 }
 
 // registerOnlineTokenCleanup 在会话终结事件上删 online_tokens:<token>。
-func registerOnlineTokenCleanup(mgr *sagin.Manager) {
+func registerOnlineTokenCleanup(mgr *sagin.Manager, rdb *redis.Client) {
 	del := func(data *listener.EventData) {
 		if data.Token == "" {
 			return
 		}
-		key := constant.OnlineTokenKeyPrefix + data.Token
-		if err := redis.Client().Del(context.Background(), key).Err(); err != nil {
+		key := onlineTokenKeyPrefix + data.Token
+		if err := rdb.Del(context.Background(), key).Err(); err != nil {
 			log.Printf("[satoken] 清理在线摘要 %s 失败: %v", key, err)
 		}
 	}

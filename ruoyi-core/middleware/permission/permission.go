@@ -1,4 +1,5 @@
-package satoken
+// Package permission sa-token 权限/角色校验中间件。
+package permission
 
 import (
 	"log"
