@@ -3,6 +3,7 @@ package repository
 
 import (
 	"database/sql"
+	"reflect"
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -78,14 +79,13 @@ func (c logicDeleteClause) ModifyStatement(stmt *gorm.Statement) {
 
 	// Delete(&SysUser{UserID: 1}) 这类按实体主键删除，把主键值补成 WHERE 条件。
 	if stmt.Schema != nil {
-		_, queryValues := schema.GetIdentityFieldValuesMap(
-			stmt.Context, stmt.ReflectValue, stmt.Schema.PrimaryFields)
-		column, values := schema.ToQueryValues(
-			stmt.Table, stmt.Schema.PrimaryFieldDBNames, queryValues)
-		if len(values) > 0 {
-			stmt.AddClause(clause.Where{Exprs: []clause.Expression{
-				clause.IN{Column: column, Values: values},
-			}})
+		addPrimaryKeyCond(stmt, stmt.ReflectValue)
+
+		// Model(&SysUser{UserID: 1}).Delete(&SysUser{}) 这类主键挂在 Model 而非 Dest
+		// 上的写法，ReflectValue 指向空的 Dest，须再从 Model 取一次，否则生成不出
+		// WHERE、被 checkMissingWhereConditions 拒掉。
+		if stmt.ReflectValue.CanAddr() && stmt.Dest != stmt.Model && stmt.Model != nil {
+			addPrimaryKeyCond(stmt, reflect.ValueOf(stmt.Model))
 		}
 	}
 
@@ -93,4 +93,17 @@ func (c logicDeleteClause) ModifyStatement(stmt *gorm.Statement) {
 	gorm.SoftDeleteQueryClause{Field: c.Field, ZeroValue: notDeleted()}.ModifyStatement(stmt)
 	stmt.AddClauseIfNotExists(clause.Update{})
 	stmt.Build(stmt.DB.Callback().Update().Clauses...)
+}
+
+// addPrimaryKeyCond 从 rv 取主键值，非零则补成 WHERE 主键 IN (...)。
+func addPrimaryKeyCond(stmt *gorm.Statement, rv reflect.Value) {
+	_, queryValues := schema.GetIdentityFieldValuesMap(
+		stmt.Context, rv, stmt.Schema.PrimaryFields)
+	column, values := schema.ToQueryValues(
+		stmt.Table, stmt.Schema.PrimaryFieldDBNames, queryValues)
+	if len(values) > 0 {
+		stmt.AddClause(clause.Where{Exprs: []clause.Expression{
+			clause.IN{Column: column, Values: values},
+		}})
+	}
 }

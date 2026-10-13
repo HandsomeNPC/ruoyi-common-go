@@ -46,8 +46,8 @@ func AuditUserFrom(ctx context.Context) (AuditUser, bool) {
 
 // RegisterAuditCallbacks 注册审计字段自动填充回调。
 //
-// Before("gorm:create") 落在用户钩子之后、ConvertToCreateValues 读字段之前；
-// Before("gorm:update") 落在 gorm:setup_reflect_value 之后，故 ReflectValue 已就绪。
+// 两者都挂在 Before("gorm:create"/"gorm:update")，即用户钩子之后、gorm 读字段拼
+// SQL 之前，这是唯一既能看到调用方预设值、又来得及改写的位置。
 func RegisterAuditCallbacks(db *gorm.DB) error {
 	if err := db.Callback().Create().Before("gorm:create").
 		Register("ruoyi:audit_insert_fill", auditInsertFill); err != nil {
@@ -57,11 +57,18 @@ func RegisterAuditCallbacks(db *gorm.DB) error {
 		Register("ruoyi:audit_update_fill", auditUpdateFill)
 }
 
-// resolveAuditUser 解析操作者，缺登录态时回落 -1。
+// resolveAuditUser 解析操作者，缺失的字段回落 -1。
+//
+// 逐字段回落而非整体回落：登录用户存在但未分配部门时 DeptID 为 0，而 0 号部门
+// 并不存在，写进 create_dept 会造出一条指向空部门的脏数据。对照 Java
+// InjectionMetaObjectHandler，createDept 也是独立兜底的。
 func resolveAuditUser(ctx context.Context) AuditUser {
-	u, ok := AuditUserFrom(ctx)
-	if !ok || u.UserID == 0 {
-		return AuditUser{UserID: AuditDefaultUserID, DeptID: AuditDefaultUserID}
+	u, _ := AuditUserFrom(ctx)
+	if u.UserID == 0 {
+		u.UserID = AuditDefaultUserID
+	}
+	if u.DeptID == 0 {
+		u.DeptID = AuditDefaultUserID
 	}
 	return u
 }
@@ -72,7 +79,7 @@ func resolveAuditUser(ctx context.Context) AuditUser {
 // 批量插入时会把各行预设的 create_time 冲掉。
 func auditInsertFill(db *gorm.DB) {
 	stmt := db.Statement
-	if db.Error != nil || stmt == nil || stmt.Schema == nil {
+	if db.Error != nil || stmt == nil || stmt.Schema == nil || stmt.SkipHooks {
 		return
 	}
 
@@ -119,15 +126,44 @@ func auditInsertFill(db *gorm.DB) {
 // 这里必须用 SetColumn：Updates(map) / Update(col, val) 的 Dest 是 map，逐行反射覆盖不到。
 func auditUpdateFill(db *gorm.DB) {
 	stmt := db.Statement
-	if db.Error != nil || stmt == nil || stmt.Schema == nil {
+	if db.Error != nil || stmt == nil || stmt.Schema == nil || stmt.SkipHooks {
 		return
 	}
+
+	// SetColumn 对 map 型 Dest 是原地写入，会把审计列塞进调用方自己的 map。
+	// 调用方若复用该 map（service 普遍先 build 再按条件补键），上一轮的 update_time
+	// 会被当成业务列带进下一轮，故先换成副本再填。
+	detachMapDest(stmt)
 
 	if stmt.Schema.FieldsByDBName[colUpdateTime] != nil {
 		stmt.SetColumn(colUpdateTime, time.Now(), true)
 	}
 	if stmt.Schema.FieldsByDBName[colUpdateBy] != nil {
 		stmt.SetColumn(colUpdateBy, resolveAuditUser(stmt.Context).UserID, true)
+	}
+}
+
+// detachMapDest 把 map 型 Dest 替换成浅拷贝，隔离后续 SetColumn 对调用方的副作用。
+// 非 map 的 Dest（struct/slice）不受影响：那条路径 SetColumn 写的是 ReflectValue，
+// 本就指向调用方的实体，刷新 update_by 到实体上是预期行为。
+func detachMapDest(stmt *gorm.Statement) {
+	switch dest := stmt.Dest.(type) {
+	case map[string]any:
+		cp := make(map[string]any, len(dest)+2)
+		for k, v := range dest {
+			cp[k] = v
+		}
+		stmt.Dest = cp
+	case []map[string]any:
+		cp := make([]map[string]any, len(dest))
+		for i, m := range dest {
+			row := make(map[string]any, len(m)+2)
+			for k, v := range m {
+				row[k] = v
+			}
+			cp[i] = row
+		}
+		stmt.Dest = cp
 	}
 }
 
