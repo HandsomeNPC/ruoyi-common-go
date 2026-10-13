@@ -1,4 +1,4 @@
-package repository
+package page
 
 // PageResult 表格分页数据对象，不含 code/msg，需嵌在 R.data 里返回。
 type PageResult[T any] struct {
