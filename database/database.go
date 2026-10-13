@@ -3,6 +3,9 @@
 // 形态对照 Java RuoYi 的 spring.datasource.dynamic：primary 指定默认数据源，
 // DB() 返回它；strict=true 时 DBByName 命中不到名字直接报错，否则回退 primary。
 // 驱动按 type 分派，mysql/postgres/sqlserver 默认编译进包，oracle 经 -tags oracle 启用。
+//
+// 本包只管建连，不含业务语义：要给每个实例挂 GORM 回调的上层包用
+// RegisterOpenHook 自行登记（见 hook.go）。
 package database
 
 import (
@@ -15,8 +18,6 @@ import (
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/schema"
-
-	"github.com/HandsomeNPC/ruoyi-common-go/ruoyi-core/repository"
 )
 
 // pingTimeout 启动时探活数据库的超时时间。
@@ -142,7 +143,7 @@ func (m *manager) cleanup() {
 	}
 }
 
-// openSource 按配置建连一个数据源：分派驱动、配连接池、探活、注册审计回调。
+// openSource 按配置建连一个数据源：分派驱动、配连接池、探活、执行建连钩子。
 func openSource(name string, cfg SourceConfig) (*gorm.DB, error) {
 	opener, ok := lookupOpener(cfg.Type)
 	if !ok {
@@ -167,10 +168,9 @@ func openSource(name string, cfg SourceConfig) (*gorm.DB, error) {
 		_ = closeDB(db)
 		return nil, err
 	}
-	// 每个实例都注册审计回调：任何 main 都无法漏掉审计字段填充。
-	if err := repository.RegisterAuditCallbacks(db); err != nil {
+	if err := applyOpenHooks(db); err != nil {
 		_ = closeDB(db)
-		return nil, fmt.Errorf("database: 注册审计字段回调失败: %w", err)
+		return nil, err
 	}
 	return db, nil
 }
