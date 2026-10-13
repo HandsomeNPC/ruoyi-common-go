@@ -28,8 +28,8 @@ import (
 	"github.com/HandsomeNPC/ruoyi-common-go/ruoyi-core/constant"
 	"github.com/HandsomeNPC/ruoyi-common-go/ruoyi-core/enum"
 	"github.com/HandsomeNPC/ruoyi-common-go/ruoyi-core/errs"
-	"github.com/HandsomeNPC/ruoyi-common-go/ruoyi-core/loginhelper"
 	"github.com/HandsomeNPC/ruoyi-common-go/ruoyi-core/response"
+	"github.com/HandsomeNPC/ruoyi-common-go/ruoyi-core/utils/loginhelper"
 
 	"github.com/HandsomeNPC/ruoyi-common-go/jsonx"
 

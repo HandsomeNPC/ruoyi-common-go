@@ -4,6 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	pkgrepo "github.com/HandsomeNPC/ruoyi-common-go/ruoyi-core/repository"
+	lh "github.com/HandsomeNPC/ruoyi-common-go/ruoyi-core/utils/loginhelper"
 )
 
 // AuditContext 把登录用户的 userId/deptId 写进 request context，供 pkg/repository
@@ -15,9 +16,11 @@ import (
 //
 // 须注册在 TokenInterceptor 之后：GetLoginUser 读的 token 由它写进 gin.Context。
 // 未登录时不写，由回调按 -1 兜底。
+//
+// GetLoginUser 已迁到 utils/loginhelper：本包与它同名（都叫 loginhelper），import 起别名 lh。
 func AuditContext() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		if lu := GetLoginUser(c); lu != nil {
+		if lu := lh.GetLoginUser(c); lu != nil {
 			c.Request = c.Request.WithContext(
 				pkgrepo.WithAuditUser(c.Request.Context(), pkgrepo.AuditUser{
 					UserID: lu.UserID,
