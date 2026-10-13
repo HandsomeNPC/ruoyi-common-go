@@ -8,12 +8,14 @@ import (
 	"unicode/utf8"
 
 	"github.com/gin-gonic/gin"
-
-	"github.com/HandsomeNPC/ruoyi-common-go/ruoyi-core/constant"
 )
 
 // 请求参数脱敏与截断。本包自带一份，与 oplog 各自维护——accesslog 不引外部脱敏包，
-// 换取中间件包的完全自包含。敏感字段来源仍是 constant.ExcludeProperties。
+// 换取中间件包的完全自包含。
+
+// excludeProperties 敏感字段集，与 ruoyi-core/constant.ExcludeProperties 同值。
+// 就地定义避免引 constant 包。
+var excludeProperties = []string{"password", "oldPassword", "newPassword", "confirmPassword"}
 
 // contentTypeJSON JSON 请求的 content-type 前缀。
 const contentTypeJSON = "application/json"
@@ -28,7 +30,7 @@ const maxSanitizeSize = 256 << 10
 const msgSensitiveParamOmitted = "<参数无法解析且疑似含敏感字段，已省略>"
 
 // sanitizeJSONParam 把 JSON 请求体脱敏并截断成一行文本，空体返回空串。
-// exclude 是在 constant.ExcludeProperties 之外额外要剔除的字段名。
+// exclude 是在 excludeProperties 之外额外要剔除的字段名。
 func sanitizeJSONParam(body []byte, maxLen int, exclude []string) string {
 	if len(body) == 0 {
 		return ""
@@ -93,10 +95,10 @@ func sanitizeFormParam(c *gin.Context, maxLen int, exclude []string) string {
 // excludeFields 合并全局敏感字段与调用方追加的字段。
 func excludeFields(extra []string) []string {
 	if len(extra) == 0 {
-		return constant.ExcludeProperties
+		return excludeProperties
 	}
-	fields := make([]string, 0, len(constant.ExcludeProperties)+len(extra))
-	fields = append(fields, constant.ExcludeProperties...)
+	fields := make([]string, 0, len(excludeProperties)+len(extra))
+	fields = append(fields, excludeProperties...)
 	return append(fields, extra...)
 }
 

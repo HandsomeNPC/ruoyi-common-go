@@ -8,14 +8,11 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-
-	"github.com/HandsomeNPC/ruoyi-common-go/ruoyi-core/response"
 )
 
 // handler 生成可重复读 body 中间件。
 //
-// 不依赖 errs + 全局 Recover 兜底渲染：超限是确定性业务失败，直接用 response.Fail 写回，
-// 既免去 errs 依赖，也避免「中间件已 Abort 但要等 Recover 才落响应」的隐式时序。
+// 超限直接回 413：既超限则后续链路不再执行，直接 Abort 即可，不引入 response/errs。
 func handler(cfg RepeatableBodyConfig) gin.HandlerFunc {
 	maxSize := cfg.MaxBodySize
 	if maxSize <= 0 {
@@ -76,11 +73,11 @@ func shouldBufferBody(c *gin.Context, types []string) bool {
 	return false
 }
 
-// rejectOversizedBody 拒绝超限的请求体，直接回写统一失败响应。
+// rejectOversizedBody 拒绝超限的请求体，直接回写 413。
 func rejectOversizedBody(c *gin.Context, size, maxSize int64) {
 	log.Printf("[body]%s 请求地址'%s',请求体超限: %d > %d 字节",
 		logTracePrefix(c), c.Request.URL.Path, size, maxSize)
-	c.AbortWithStatusJSON(http.StatusOK, response.Fail("请求体超出大小限制"))
+	c.AbortWithStatusJSON(http.StatusRequestEntityTooLarge, "请求体超出大小限制")
 }
 
 // traceIDKey 与 ruoyi-core/middleware.TraceIDKey 同值，这里直接用字面量避免反向依赖 middleware 包。

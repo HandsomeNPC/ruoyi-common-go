@@ -6,16 +6,15 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
+	"net/http"
 	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	sagin "github.com/sa-tokens/sa-token-go/integrations/gin"
-
-	"github.com/HandsomeNPC/ruoyi-common-go/ruoyi-core/constant"
-	"github.com/HandsomeNPC/ruoyi-common-go/ruoyi-core/errs"
 )
 
 // run 执行一次防重判定。
@@ -31,10 +30,13 @@ func (s *Submitter) run(c *gin.Context, o *options) {
 		return
 	}
 	if !locked {
+		// 直接写失败响应：原先登记 c.Error 交给 Recover 渲染，但该中间件未必被
+		// Recover 外包（即便外包，写入也会被本函数后续缓冲的 bodyWriter 吞掉），
+		// 客户端拿不到提示。自己渲染才稳定。
 		log.Printf("[repeatsubmit] %s %s 触发防重提交, 缓存key => '%s'",
 			c.Request.Method, c.Request.URL.Path, key)
-		_ = c.Error(errs.New(0, o.message, ""))
-		c.Abort()
+		body := fmt.Sprintf(`{"code":%d,"msg":"%s","data":null}`, codeFail, o.message)
+		c.AbortWithStatusJSON(http.StatusOK, json.RawMessage(body))
 		return
 	}
 
@@ -107,7 +109,7 @@ func (s *Submitter) combineKey(c *gin.Context) string {
 	fingerprint := hex.EncodeToString(sum.Sum(nil))
 
 	var sb strings.Builder
-	sb.WriteString(constant.RepeatSubmitKey)
+	sb.WriteString(repeatSubmitKey)
 	sb.WriteString(c.Request.URL.Path)
 	sb.WriteString(fingerprint)
 	return sb.String()

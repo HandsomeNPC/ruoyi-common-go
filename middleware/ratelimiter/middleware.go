@@ -1,13 +1,13 @@
 package ratelimiter
 
 import (
+	"encoding/json"
+	"fmt"
 	"log"
+	"net/http"
 	"strings"
 
 	"github.com/gin-gonic/gin"
-
-	"github.com/HandsomeNPC/ruoyi-common-go/ruoyi-core/constant"
-	"github.com/HandsomeNPC/ruoyi-common-go/ruoyi-core/errs"
 
 	"github.com/HandsomeNPC/ruoyi-common-go/ip"
 )
@@ -36,10 +36,11 @@ func (l *Limiter) run(c *gin.Context, o *options) {
 		return
 	}
 	if remain < 0 {
+		// 直接写失败响应：登记 c.Error 交给外包 Recover 渲染依赖中间件顺序，自己渲染才稳定。
 		log.Printf("[ratelimiter] %s %s 触发限流, 缓存key => '%s'",
 			c.Request.Method, c.Request.URL.Path, key)
-		_ = c.Error(errs.New(0, o.message, ""))
-		c.Abort()
+		body := fmt.Sprintf(`{"code":%d,"msg":"%s","data":null}`, codeFail, o.message)
+		c.AbortWithStatusJSON(http.StatusOK, json.RawMessage(body))
 		return
 	}
 	c.Next()
@@ -49,7 +50,7 @@ func (l *Limiter) run(c *gin.Context, o *options) {
 // 动态维度为空时保留结尾冒号。
 func (l *Limiter) combineKey(c *gin.Context, o *options) string {
 	var sb strings.Builder
-	sb.WriteString(constant.RateLimitKey)
+	sb.WriteString(rateLimitKey)
 	sb.WriteString(c.Request.URL.Path)
 	sb.WriteByte(':')
 

@@ -4,12 +4,6 @@
 //   - 进 handler 前用 SETNX 抢锁，抢不到即判为重复提交并拦截；
 //   - handler 成功（响应 code=200）则保留键，interval 内的重复请求都被挡住；
 //   - handler 失败或 panic 则删键，允许立刻重试。
-//
-// 取舍：
-//   - 指纹改用「请求体 + query 串」（无 AOP 取不到方法入参）、用 sha256 而非 md5；
-//     interval < 1s 在注册期 panic 而非运行期抛异常。
-//   - 与 ratelimiter 同属注解型中间件：Redis 客户端由 Init 注入（不在内部兜底包级
-//     redis.Client()），nil 在此拦下，比拖到首次请求才 NPE 更易定位。
 package repeatsubmit
 
 import (
@@ -36,6 +30,14 @@ const maxFingerprintBody = 1 << 20 // 1MB
 // codeSuccess 业务成功码，与 ruoyi-core/response.CodeSuccess 同值。
 // 就地定义避免引 response 包（仅用此一个常量）。
 const codeSuccess = 200
+
+// codeFail 业务失败码，与 ruoyi-core/response.CodeFail 同值；防重触发时回此码。
+// 就地定义避免引 response 包。
+const codeFail = 500
+
+// repeatSubmitKey 防重缓存键前缀，与 ruoyi-core/constant.RepeatSubmitKey 同值。
+// 就地定义避免引 constant 包（仅用此一个常量）。
+const repeatSubmitKey = "global:repeat_submit:"
 
 type options struct {
 	interval time.Duration // 防重间隔
