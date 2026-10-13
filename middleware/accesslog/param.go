@@ -13,8 +13,10 @@ import (
 // 请求参数脱敏与截断。本包自带一份，与 oplog 各自维护——accesslog 不引外部脱敏包，
 // 换取中间件包的完全自包含。
 
-// excludeProperties 敏感字段集，与 ruoyi-core/constant.ExcludeProperties 同值。
-// 就地定义避免引 constant 包。
+// excludeProperties 敏感字段集。与 operlog 那份是故意的两份副本（换取本包自包含），
+// 改这里时必须同步 ruoyi-core/middleware/operlog/param.go——两边曾因此分叉过：
+// 一侧逐字匹配、一侧忽略大小写，导致 {"Password":...} 明文进了访问日志。
+// 行为约束见 param_test.go。
 var excludeProperties = []string{"password", "oldPassword", "newPassword", "confirmPassword"}
 
 // contentTypeJSON JSON 请求的 content-type 前缀。
@@ -73,12 +75,13 @@ func sanitizeFormParam(c *gin.Context, maxLen int, exclude []string) string {
 	}
 
 	// 复制一份再删：Form 是 handler 后面要用的数据，日志绝不能改动请求本身。
+	fields := excludeFields(exclude)
 	safe := make(url.Values, len(form))
 	for k, v := range form {
+		if isSensitive(k, fields) {
+			continue
+		}
 		safe[k] = v
-	}
-	for _, field := range excludeFields(exclude) {
-		delete(safe, field)
 	}
 	if len(safe) == 0 {
 		return ""
@@ -103,11 +106,17 @@ func excludeFields(extra []string) []string {
 }
 
 // removeSensitiveFields 递归删掉敏感字段。
+//
+// 按忽略大小写匹配：JSON 绑定本身不区分大小写（{"Password":...} 同样能绑进
+// Password 字段），逐字匹配会漏掉 "Password"/"PASSWORD" 这类写法导致明文入日志。
 func removeSensitiveFields(node any, fields []string) {
 	switch n := node.(type) {
 	case map[string]any:
-		for _, field := range fields {
-			delete(n, field)
+		// Go 规范允许遍历 map 时删除当前 key，命中的就地删掉再递归剩下的子节点。
+		for key := range n {
+			if isSensitive(key, fields) {
+				delete(n, key)
+			}
 		}
 		for _, child := range n {
 			removeSensitiveFields(child, fields)
@@ -117,6 +126,16 @@ func removeSensitiveFields(node any, fields []string) {
 			removeSensitiveFields(child, fields)
 		}
 	}
+}
+
+// isSensitive 判断字段名是否命中敏感字段集，忽略大小写。
+func isSensitive(name string, fields []string) bool {
+	for _, field := range fields {
+		if strings.EqualFold(name, field) {
+			return true
+		}
+	}
+	return false
 }
 
 // rawParamLog 结构化脱敏失败时的兜底：截断原文，但先确认里面没有敏感字段。

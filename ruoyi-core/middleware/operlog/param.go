@@ -16,6 +16,9 @@ import (
 
 // 请求参数脱敏与截断。本包自带一份，与 accesslog 各自维护——换取本包完全自包含，
 // 不引外部脱敏包。敏感字段来源仍是 constant.ExcludeProperties。
+//
+// 改脱敏行为时必须同步 middleware/accesslog/param.go——两边曾因此分叉过：
+// 一侧逐字匹配、一侧忽略大小写，导致 {"Password":...} 明文进了访问日志。
 
 // contentTypeJSON JSON 请求/响应的 content-type 前缀。
 const contentTypeJSON = "application/json"
@@ -136,12 +139,13 @@ func sanitizeFormParam(c *gin.Context, maxLen int, exclude []string) string {
 	}
 
 	// 复制一份再删：Form 是 handler 后面要用的数据，日志绝不能改动请求本身。
+	fields := excludeFields(exclude)
 	safe := make(url.Values, len(form))
 	for k, v := range form {
+		if isSensitive(k, fields) {
+			continue
+		}
 		safe[k] = v
-	}
-	for _, field := range excludeFields(exclude) {
-		delete(safe, field)
 	}
 	if len(safe) == 0 {
 		return ""

@@ -35,8 +35,7 @@ const codeSuccess = 200
 // 就地定义避免引 ruoyi-core/model/response 包。
 const codeFail = 500
 
-// repeatSubmitKey 防重缓存键前缀，与 ruoyi-core/constant.RepeatSubmitKey 同值。
-// 就地定义避免引 constant 包（仅用此一个常量）。
+// repeatSubmitKey 防重缓存键前缀。"global:" 前缀沿用全局 redis key 约定。
 const repeatSubmitKey = "global:repeat_submit:"
 
 type options struct {

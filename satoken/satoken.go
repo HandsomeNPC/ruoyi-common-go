@@ -17,7 +17,8 @@ import (
 const defaultTokenName = "Authorization"
 
 // onlineTokenKeyPrefix 在线用户摘要的 Redis key 前缀。
-// 与 ruoyi-core/constant.OnlineTokenKeyPrefix 同值，这里就地复制以避免 satoken 反向依赖 constant。
+// 会话存储自己的键空间。项目自管的在线摘要键是另一份
+// (internal/auth/service/syslogin.OnlineTokenKeyPrefix)，两者同值但互不依赖。
 const onlineTokenKeyPrefix = "online_tokens:"
 
 // errMissingSecretKey 密钥未配置。随机兜底会让多进程各签各的、重启后旧 token 全失效。

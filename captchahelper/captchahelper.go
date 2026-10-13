@@ -2,7 +2,7 @@
 //
 // 对照 smshelper：Init(CaptchaConfig) 构造驱动并设包级全局，业务侧用包级
 // Enabled() / Generate()。本包只管出题、画图、回 uuid / 裸 base64 / 答案，
-// **不碰 Redis**——把答案写进 Redis 是业务侧的事（键约定见 constant.CaptchaCodeKey，
+// **不碰 Redis**——把答案写进 Redis 是业务侧的事（键约定见 internal/resource/constant.CaptchaCodeKey，
 // 校验在 internal/auth/service 各认证策略的 validateCaptcha 里）。
 //
 // 底层图形绘制用 base64Captcha 的 Driver（只用 DrawCaptcha 画图），

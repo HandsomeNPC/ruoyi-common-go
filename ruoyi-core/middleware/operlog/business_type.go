@@ -1,4 +1,4 @@
-package enum
+package operlog
 
 // BusinessType 业务操作类型。
 //
@@ -18,21 +18,8 @@ const (
 	BusinessTypeClean                       // 清空数据
 )
 
-// businessTypeInfos 各业务类型的中文描述，下标即枚举值。
-var businessTypeInfos = [...]string{
-	"其它", "新增", "修改", "删除", "授权", "导出", "导入", "强退", "生成代码", "清空数据",
-}
-
 // Int 返回落库数值。
 func (b BusinessType) Int() int { return int(b) }
-
-// Info 返回中文描述，越界返回 "其它"（对齐 Int 越界时的兜底语义）。
-func (b BusinessType) Info() string {
-	if b < 0 || int(b) >= len(businessTypeInfos) {
-		return businessTypeInfos[BusinessTypeOther]
-	}
-	return businessTypeInfos[b]
-}
 
 // OperatorType 操作人类别，取值为 ordinal()，不可调序。
 type OperatorType int

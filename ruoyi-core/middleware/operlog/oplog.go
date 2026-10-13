@@ -14,8 +14,6 @@ import (
 	"sync/atomic"
 
 	"github.com/gin-gonic/gin"
-
-	"github.com/HandsomeNPC/ruoyi-common-go/ruoyi-core/enum"
 )
 
 // 各字段落库长度上限，与 sys_oper_log 列宽对应；超长会让整条日志插入失败。
@@ -80,7 +78,7 @@ func get() Recorder {
 
 // options Log 的可选项。
 type options struct {
-	operatorType     enum.OperatorType
+	operatorType     OperatorType
 	saveRequestData  bool
 	saveResponseData bool
 	excludeParams    []string
@@ -90,7 +88,7 @@ type options struct {
 type Option func(*options)
 
 // WithOperatorType 指定操作人类别，默认 OperatorTypeManage。
-func WithOperatorType(t enum.OperatorType) Option {
+func WithOperatorType(t OperatorType) Option {
 	return func(o *options) { o.operatorType = t }
 }
 
@@ -112,9 +110,9 @@ func WithExcludeParams(names ...string) Option {
 // Log 操作日志注解。title 为模块名，businessType 为业务类型。
 //
 // 须排在鉴权之后：被拒的请求在鉴权阶段就返回，进不到本中间件。
-func Log(title string, businessType enum.BusinessType, opts ...Option) gin.HandlerFunc {
+func Log(title string, businessType BusinessType, opts ...Option) gin.HandlerFunc {
 	o := &options{
-		operatorType:     enum.OperatorTypeManage,
+		operatorType:     OperatorTypeManage,
 		saveRequestData:  true,
 		saveResponseData: true,
 	}

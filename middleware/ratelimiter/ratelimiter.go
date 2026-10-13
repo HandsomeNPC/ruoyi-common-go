@@ -19,8 +19,7 @@ import (
 // 就地定义避免引 ruoyi-core/model/response 包。
 const codeFail = 500
 
-// rateLimitKey 限流缓存键前缀，与 ruoyi-core/constant.RateLimitKey 同值。
-// 就地定义避免引 constant 包（仅用此一个常量）。
+// rateLimitKey 限流缓存键前缀。"global:" 前缀沿用全局 redis key 约定。
 const rateLimitKey = "global:rate_limit:"
 
 // Limiter 限流器。

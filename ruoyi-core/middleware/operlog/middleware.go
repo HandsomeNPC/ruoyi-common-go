@@ -12,7 +12,6 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/HandsomeNPC/ruoyi-common-go/ruoyi-core/constant"
-	"github.com/HandsomeNPC/ruoyi-common-go/ruoyi-core/enum"
 	"github.com/HandsomeNPC/ruoyi-common-go/ruoyi-core/errs"
 	"github.com/HandsomeNPC/ruoyi-common-go/ruoyi-core/model/response"
 	"github.com/HandsomeNPC/ruoyi-common-go/ruoyi-core/utils/loginhelper"
@@ -23,7 +22,7 @@ import (
 )
 
 // run 执行一次操作日志记录。
-func run(c *gin.Context, title string, businessType enum.BusinessType, o *options) {
+func run(c *gin.Context, title string, businessType BusinessType, o *options) {
 	evt := &Event{
 		Title:         title,
 		BusinessType:  businessType.Int(),
@@ -34,7 +33,7 @@ func run(c *gin.Context, title string, businessType enum.BusinessType, o *option
 		// X-Forwarded-For 可伪造且不校验格式，长度必须自己兜。
 		OperIP:    limit(ip.ResolveClientIP(c.Request), maxIPLength),
 		ClientKey: limit(c.GetHeader(constant.ClientIDHeader), maxClientKeyLength),
-		Status:    enum.BusinessStatusSuccess.Int(),
+		Status:    BusinessStatusSuccess.Int(),
 	}
 	fillLoginUser(c, evt)
 
@@ -58,7 +57,7 @@ func run(c *gin.Context, title string, businessType enum.BusinessType, o *option
 
 		if !completed {
 			// panic 正在展开：记失败后继续往上抛，不 recover。
-			evt.Status = enum.BusinessStatusFail.Int()
+			evt.Status = BusinessStatusFail.Int()
 			evt.ErrorMsg = msgPanic
 			emit(c, evt)
 			return
@@ -71,7 +70,7 @@ func run(c *gin.Context, title string, businessType enum.BusinessType, o *option
 			evt.JSONResult = limit(body, maxContentLength)
 		}
 		if fail, reason := failed(c, body); fail {
-			evt.Status = enum.BusinessStatusFail.Int()
+			evt.Status = BusinessStatusFail.Int()
 			evt.ErrorMsg = limit(reason, maxContentLength)
 		}
 		emit(c, evt)

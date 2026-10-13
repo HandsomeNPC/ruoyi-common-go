@@ -8,7 +8,7 @@ import "time"
 const (
 	// OssDefaultConfigKey 当前生效的对象存储配置键，值是 sys_oss_config.config_key。
 	// 与 CacheSysOssConfig 缓存组分工：那边存各配置的完整 JSON，这里只记用哪一个。
-	// "global:" 前缀沿用原 constant.GlobalRedisKey 的全局 key 约定。
+	// "global:" 前缀沿用全局 redis key 约定。
 	OssDefaultConfigKey = "global:sys_oss:default_config"
 )
 
