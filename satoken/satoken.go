@@ -8,9 +8,9 @@ import (
 	"log"
 
 	"github.com/redis/go-redis/v9"
-	"github.com/sa-tokens/sa-token-go/core/listener"
-	sagin "github.com/sa-tokens/sa-token-go/integrations/gin"
-	saredis "github.com/sa-tokens/sa-token-go/storage/redis"
+	"github.com/HandsomeNPC/sa-token-go/core/listener"
+	sagin "github.com/HandsomeNPC/sa-token-go/integrations/gin"
+	saredis "github.com/HandsomeNPC/sa-token-go/storage/redis"
 )
 
 // defaultTokenName 读取 token 的请求头名默认值。

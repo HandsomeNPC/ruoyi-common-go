@@ -7,8 +7,8 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	sagin "github.com/sa-tokens/sa-token-go/integrations/gin"
-	"github.com/sa-tokens/sa-token-go/stputil"
+	sagin "github.com/HandsomeNPC/sa-token-go/integrations/gin"
+	"github.com/HandsomeNPC/sa-token-go/stputil"
 
 	"github.com/HandsomeNPC/ruoyi-common-go/ruoyi-core/constant"
 	"github.com/HandsomeNPC/ruoyi-common-go/ruoyi-core/enum"

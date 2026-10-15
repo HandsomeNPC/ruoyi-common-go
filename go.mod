@@ -3,6 +3,10 @@ module github.com/HandsomeNPC/ruoyi-common-go
 go 1.26.5
 
 require (
+	github.com/HandsomeNPC/sa-token-go/core v0.2.5
+	github.com/HandsomeNPC/sa-token-go/integrations/gin v0.2.5
+	github.com/HandsomeNPC/sa-token-go/storage/redis v0.2.5
+	github.com/HandsomeNPC/sa-token-go/stputil v0.2.5
 	github.com/alibabacloud-go/darabonba-openapi/v2 v2.2.4
 	github.com/alibabacloud-go/dysmsapi-20170525/v5 v5.6.0
 	github.com/aws/aws-sdk-go-v2 v1.47.3
@@ -16,11 +20,6 @@ require (
 	github.com/mojocn/base64Captcha v1.3.8
 	github.com/mssola/useragent v1.0.0
 	github.com/redis/go-redis/v9 v9.23.0
-	github.com/sa-tokens/sa-token-go/core v0.2.3
-	github.com/sa-tokens/sa-token-go/integrations/gin v0.2.3
-	github.com/sa-tokens/sa-token-go/storage/redis v0.2.3
-	github.com/sa-tokens/sa-token-go/stputil v0.2.3
-	github.com/spf13/viper v1.21.0
 	github.com/xuri/excelize/v2 v2.11.0
 	golang.org/x/crypto v0.53.0
 	golang.org/x/oauth2 v0.37.0
@@ -54,7 +53,6 @@ require (
 	github.com/clbanning/mxj/v2 v2.7.0 // indirect
 	github.com/cloudwego/base64x v0.1.7 // indirect
 	github.com/emirpasic/gods v1.12.0 // indirect
-	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.13 // indirect
 	github.com/gin-contrib/sse v1.1.1 // indirect
 	github.com/go-logfmt/logfmt v0.5.0 // indirect
@@ -62,7 +60,6 @@ require (
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/go-playground/validator/v10 v10.30.2 // indirect
 	github.com/go-sql-driver/mysql v1.8.1 // indirect
-	github.com/go-viper/mapstructure/v2 v2.4.0 // indirect
 	github.com/goccy/go-json v0.10.6 // indirect
 	github.com/goccy/go-yaml v1.19.2 // indirect
 	github.com/godror/godror v0.20.0 // indirect
@@ -89,13 +86,7 @@ require (
 	github.com/quic-go/quic-go v0.59.1 // indirect
 	github.com/richardlehane/mscfb v1.0.7 // indirect
 	github.com/richardlehane/msoleps v1.0.6 // indirect
-	github.com/sagikazarmark/locafero v0.11.0 // indirect
 	github.com/shopspring/decimal v1.4.0 // indirect
-	github.com/sourcegraph/conc v0.3.1-0.20240121214520-5f936abd7ae8 // indirect
-	github.com/spf13/afero v1.15.0 // indirect
-	github.com/spf13/cast v1.10.0 // indirect
-	github.com/spf13/pflag v1.0.10 // indirect
-	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/thoas/go-funk v0.7.0 // indirect
 	github.com/tiendc/go-deepcopy v1.7.2 // indirect
 	github.com/tjfoc/gmsm v1.4.1 // indirect
@@ -105,7 +96,6 @@ require (
 	github.com/xuri/nfp v0.0.2-0.20250530014748-2ddeb826f9a9 // indirect
 	go.mongodb.org/mongo-driver/v2 v2.6.0 // indirect
 	go.uber.org/atomic v1.12.0 // indirect
-	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	golang.org/x/arch v0.27.0 // indirect
 	golang.org/x/image v0.38.0 // indirect
 	golang.org/x/net v0.56.0 // indirect

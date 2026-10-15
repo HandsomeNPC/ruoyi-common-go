@@ -14,7 +14,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	sagin "github.com/sa-tokens/sa-token-go/integrations/gin"
+	sagin "github.com/HandsomeNPC/sa-token-go/integrations/gin"
 )
 
 // run 执行一次防重判定。
