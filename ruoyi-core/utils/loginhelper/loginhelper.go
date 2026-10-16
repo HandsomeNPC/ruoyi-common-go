@@ -5,10 +5,12 @@ import (
 	"encoding/json"
 	"log"
 	"strconv"
+	"time"
 
-	"github.com/gin-gonic/gin"
+	sasession "github.com/HandsomeNPC/sa-token-go/core/session"
 	sagin "github.com/HandsomeNPC/sa-token-go/integrations/gin"
 	"github.com/HandsomeNPC/sa-token-go/stputil"
+	"github.com/gin-gonic/gin"
 
 	"github.com/HandsomeNPC/ruoyi-common-go/ruoyi-core/constant"
 	"github.com/HandsomeNPC/ruoyi-common-go/ruoyi-core/enum"
@@ -18,14 +20,43 @@ import (
 // LoginUserKey token session 中 *LoginUser 的键。
 const LoginUserKey = "loginUser"
 
+// LoginOptions 单次登录的超时覆盖项，对应 sys_client 的 timeout / active_timeout 两列。
+//
+// 零值表示该项不覆盖、沿用 satoken 全局配置。需 satoken.dynamicActiveTimeout=true
+// 才会生效，否则 sa-token-go 会丢弃 ActiveTimeout 并打告警。
+type LoginOptions struct {
+	// Device 设备类型，对应 SaLoginParameter.deviceType，"" 走默认。
+	Device string
+	// Timeout token 固定有效期(秒)，0 表示沿用全局配置。
+	Timeout int64
+	// ActiveTimeout token 最低活跃频率(秒)，0 表示沿用全局配置。
+	ActiveTimeout int64
+}
+
 // Login 签发令牌、把 *LoginUser 存入 token session，并回填 loginUser.Token。
 // device 对应 SaLoginParameter.deviceType，"" 走默认。
 func Login(loginUser *authmodel.LoginUser, device string) (string, error) {
+	return LoginWithOptions(loginUser, LoginOptions{Device: device})
+}
+
+// LoginWithOptions 按客户端超时签发令牌，其余同 Login。
+//
+// RuoYi 的超时是按 sys_client 配的，各客户端(pc / app / 小程序)可不同，
+// 故须随每次登录传入而非只读全局配置。
+func LoginWithOptions(loginUser *authmodel.LoginUser, opts LoginOptions) (string, error) {
 	loginID, err := loginUser.LoginID()
 	if err != nil {
 		return "", err
 	}
-	token, err := sagin.Login(loginID, device)
+
+	param := sagin.NewLoginParameter()
+	param.Device = opts.Device
+	param.Timeout = opts.Timeout
+	if opts.ActiveTimeout != 0 {
+		param.SetActiveTimeout(opts.ActiveTimeout)
+	}
+
+	token, err := sagin.LoginWithParameter(loginID, param)
 	if err != nil {
 		return "", err
 	}
@@ -39,7 +70,9 @@ func Login(loginUser *authmodel.LoginUser, device string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if err := sess.Set(LoginUserKey, string(payload)); err != nil {
+	// 必须显式带 TTL：session.Set 省略 TTL 时会以「无过期」落库，
+	// 令 token 过期后这份 LoginUser 仍长留 Redis。
+	if err := setWithTokenTTL(sess, token, LoginUserKey, string(payload)); err != nil {
 		return "", err
 	}
 	if err := stputil.SetPermissions(loginID, toSaTokenPerms(loginUser.MenuPermission)); err != nil {
@@ -49,6 +82,19 @@ func Login(loginUser *authmodel.LoginUser, device string) (string, error) {
 		return "", err
 	}
 	return token, nil
+}
+
+// setWithTokenTTL 以 token 的剩余有效期为 TTL 写 session，使两者同步失效。
+// token 被配成永不过期(TTL=-1)时不带 TTL，与 token 行为保持一致。
+func setWithTokenTTL(sess *sasession.Session, token, key, value string) error {
+	ttl, err := sagin.GetManager().GetTokenTimeout(token)
+	if err != nil {
+		return err
+	}
+	if ttl > 0 {
+		return sess.Set(key, value, time.Duration(ttl)*time.Second)
+	}
+	return sess.Set(key, value)
 }
 
 // toSaTokenPerms 把超管的 *:*:* 换成 sa-token 认得的 *，其余原样。

@@ -3,10 +3,10 @@ module github.com/HandsomeNPC/ruoyi-common-go
 go 1.26.5
 
 require (
-	github.com/HandsomeNPC/sa-token-go/core v0.2.5
-	github.com/HandsomeNPC/sa-token-go/integrations/gin v0.2.5
-	github.com/HandsomeNPC/sa-token-go/storage/redis v0.2.5
-	github.com/HandsomeNPC/sa-token-go/stputil v0.2.5
+	github.com/HandsomeNPC/sa-token-go/core v0.2.6
+	github.com/HandsomeNPC/sa-token-go/integrations/gin v0.2.6
+	github.com/HandsomeNPC/sa-token-go/storage/redis v0.2.6
+	github.com/HandsomeNPC/sa-token-go/stputil v0.2.6
 	github.com/alibabacloud-go/darabonba-openapi/v2 v2.2.4
 	github.com/alibabacloud-go/dysmsapi-20170525/v5 v5.6.0
 	github.com/aws/aws-sdk-go-v2 v1.47.3

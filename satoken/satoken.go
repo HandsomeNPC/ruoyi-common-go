@@ -7,14 +7,20 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/redis/go-redis/v9"
 	"github.com/HandsomeNPC/sa-token-go/core/listener"
 	sagin "github.com/HandsomeNPC/sa-token-go/integrations/gin"
 	saredis "github.com/HandsomeNPC/sa-token-go/storage/redis"
+	"github.com/redis/go-redis/v9"
 )
 
 // defaultTokenName 读取 token 的请求头名默认值。
 const defaultTokenName = "Authorization"
+
+// 超时默认值，与 sys_client 表的列默认值对齐（timeout 7 天、active_timeout 30 分钟）。
+const (
+	defaultTimeout       int64 = 604800
+	defaultActiveTimeout int64 = 1800
+)
 
 // onlineTokenKeyPrefix 在线用户摘要的 Redis key 前缀。
 // 会话存储自己的键空间。项目自管的在线摘要键是另一份
@@ -37,20 +43,24 @@ func Init(cfg SATokenConfig, rdb *redis.Client) {
 
 	manager := sagin.NewBuilder().
 		Storage(storage).
-		TokenName(cfg.TokenName).        // 可配
-		IsConcurrent(cfg.IsConcurrent).  // 可配
-		IsShare(cfg.IsShare).            // 可配
-		TokenStyle(sagin.TokenStyleJWT). // 固定 JWT
-		JwtSecretKey(cfg.JwtSecretKey).  // 可配
-		IsReadCookie(true).              // 固定：启用 Cookie 读 token
-		IsReadBody(true).                // 固定：启用 Body 读 token
+		TokenName(cfg.TokenName).                       // 可配
+		IsConcurrent(cfg.IsConcurrent).                 // 可配
+		IsShare(cfg.IsShare).                           // 可配
+		TokenStyle(sagin.TokenStyleJWT).                // 固定 JWT
+		JwtSecretKey(cfg.JwtSecretKey).                 // 可配
+		Timeout(cfg.Timeout).                           // 可配：固定有效期(绝对上限)
+		ActiveTimeout(cfg.ActiveTimeout).               // 可配：活跃超时(滑动空闲窗口)
+		DynamicActiveTimeout(cfg.DynamicActiveTimeout). // 可配：是否允许按客户端覆盖超时
+		IsReadCookie(true).                             // 固定：启用 Cookie 读 token
+		IsReadBody(true).                               // 固定：启用 Body 读 token
 		Build()
 
 	sagin.SetManager(manager)
 	// 登出/被踢/被顶时清 online_tokens 摘要。
 	// sa-token-go 在这些动作内部同步触发事件，故无需再于各调用点手删。
 	registerOnlineTokenCleanup(manager, rdb)
-	log.Printf("[satoken] 已就绪: tokenName=%s", cfg.TokenName)
+	log.Printf("[satoken] 已就绪: tokenName=%s timeout=%ds activeTimeout=%ds dynamicActiveTimeout=%t",
+		cfg.TokenName, cfg.Timeout, cfg.ActiveTimeout, cfg.DynamicActiveTimeout)
 }
 
 // registerOnlineTokenCleanup 在会话终结事件上删 online_tokens:<token>。
