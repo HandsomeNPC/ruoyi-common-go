@@ -3,13 +3,14 @@ package response
 
 // 业务状态码。
 const (
-	CodeSuccess      = 200 // 操作成功
-	CodeBadRequest   = 400 // 参数错误（缺少、格式不匹配）
-	CodeUnauthorized = 401 // 未授权
-	CodeForbidden    = 403 // 访问受限，授权过期
-	CodeNotFound     = 404 // 资源、服务未找到
-	CodeFail         = 500 // 系统内部错误
-	CodeWarn         = 601 // 系统警告消息
+	CodeSuccess          = 200 // 操作成功
+	CodeBadRequest       = 400 // 参数错误（缺少、格式不匹配）
+	CodeUnauthorized     = 401 // 未授权
+	CodeForbidden        = 403 // 访问受限，授权过期
+	CodeNotFound         = 404 // 资源、服务未找到
+	CodeMethodNotAllowed = 405 // 请求方式不支持
+	CodeFail             = 500 // 系统内部错误
+	CodeWarn             = 601 // 系统警告消息
 )
 
 // 默认提示信息。

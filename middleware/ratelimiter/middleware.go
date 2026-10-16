@@ -1,8 +1,6 @@
 package ratelimiter
 
 import (
-	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"strings"
@@ -39,8 +37,7 @@ func (l *Limiter) run(c *gin.Context, o *options) {
 		// 直接写失败响应：登记 c.Error 交给外包 Recover 渲染依赖中间件顺序，自己渲染才稳定。
 		log.Printf("[ratelimiter] %s %s 触发限流, 缓存key => '%s'",
 			c.Request.Method, c.Request.URL.Path, key)
-		body := fmt.Sprintf(`{"code":%d,"msg":"%s","data":null}`, codeFail, o.message)
-		c.AbortWithStatusJSON(http.StatusOK, json.RawMessage(body))
+		c.AbortWithStatusJSON(http.StatusOK, failBody{Code: codeFail, Msg: o.message})
 		return
 	}
 	c.Next()

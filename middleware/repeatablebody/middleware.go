@@ -10,9 +10,22 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// codeFail 业务失败码，与 ruoyi-core/model/response.CodeFail 同值。
+// 就地定义避免引 ruoyi-core/model/response 包。
+const codeFail = 500
+
+// msgOversized 请求体超限的提示文案。
+const msgOversized = "请求体超出大小限制"
+
+// failBody 失败响应体，形态同 ruoyi-core/model/response.R（Data 恒为 null）。
+// 用结构体而非 fmt 拼串：msg 含引号时拼串会产出非法 JSON。
+type failBody struct {
+	Code int    `json:"code"`
+	Msg  string `json:"msg"`
+	Data any    `json:"data"`
+}
+
 // handler 生成可重复读 body 中间件。
-//
-// 超限直接回 413：既超限则后续链路不再执行，直接 Abort 即可，不引入 response/errs。
 func handler(cfg RepeatableBodyConfig) gin.HandlerFunc {
 	maxSize := cfg.MaxBodySize
 	if maxSize <= 0 {
@@ -73,11 +86,19 @@ func shouldBufferBody(c *gin.Context, types []string) bool {
 	return false
 }
 
-// rejectOversizedBody 拒绝超限的请求体，直接回写 413。
+// rejectOversizedBody 拒绝超限的请求体。
+//
+// HTTP 恒 200 + {code,msg,data}：Java 的 RepeatableFilter 不设大小上限、没有对应的
+// 413 分支，这里的限制是 Go 侧自加的防护，故响应形态必须落回项目统一契约——
+// 真 413 会让前端 axios 走 error 分支，拿不到 msg。
+// 不引 ruoyi-core/model/response，与本包自包含的约定一致。
 func rejectOversizedBody(c *gin.Context, size, maxSize int64) {
 	log.Printf("[body]%s 请求地址'%s',请求体超限: %d > %d 字节",
 		logTracePrefix(c), c.Request.URL.Path, size, maxSize)
-	c.AbortWithStatusJSON(http.StatusRequestEntityTooLarge, "请求体超出大小限制")
+	c.AbortWithStatusJSON(http.StatusOK, failBody{
+		Code: codeFail,
+		Msg:  msgOversized,
+	})
 }
 
 // traceIDKey 与 ruoyi-core/middleware.TraceIDKey 同值，这里直接用字面量避免反向依赖 middleware 包。

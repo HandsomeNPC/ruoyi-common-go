@@ -6,15 +6,14 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"strings"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	sagin "github.com/HandsomeNPC/sa-token-go/integrations/gin"
+	"github.com/gin-gonic/gin"
 )
 
 // run 执行一次防重判定。
@@ -35,8 +34,7 @@ func (s *Submitter) run(c *gin.Context, o *options) {
 		// 客户端拿不到提示。自己渲染才稳定。
 		log.Printf("[repeatsubmit] %s %s 触发防重提交, 缓存key => '%s'",
 			c.Request.Method, c.Request.URL.Path, key)
-		body := fmt.Sprintf(`{"code":%d,"msg":"%s","data":null}`, codeFail, o.message)
-		c.AbortWithStatusJSON(http.StatusOK, json.RawMessage(body))
+		c.AbortWithStatusJSON(http.StatusOK, failBody{Code: codeFail, Msg: o.message})
 		return
 	}
 

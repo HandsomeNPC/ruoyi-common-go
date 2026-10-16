@@ -11,6 +11,7 @@ package apiencrypt
 import (
 	"bytes"
 	"crypto/rsa"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -204,12 +205,18 @@ func unwrapJSONString(b []byte) string {
 	return string(b)
 }
 
+// failBody 失败响应体，形态同 ruoyi-core/model/response.R（Data 恒为 null）。
+// 用结构体而非 fmt 拼串：msg 含引号时拼串会产出非法 JSON。
+type failBody struct {
+	Code int    `json:"code"`
+	Msg  string `json:"msg"`
+	Data any    `json:"data"`
+}
+
 // writeFail 直写失败 JSON 并终止链：HTTP 恒 200，body code/msg 由参数给。
-// 不定义 envelope 类型、不引 ruoyi-core/model/response，按项目统一 {code,msg,data} 形态用 fmt 拼。
+// 不引 ruoyi-core/model/response，与本包自包含的约定一致。
 func writeFail(c *gin.Context, code int, msg string) {
-	c.Data(http.StatusOK, "application/json; charset=utf-8",
-		[]byte(fmt.Sprintf(`{"code":%d,"msg":"%s","data":null}`, code, msg)))
-	c.Abort()
+	c.AbortWithStatusJSON(http.StatusOK, failBody{Code: code, Msg: msg})
 }
 
 // fail 记录明细并回请求解密失败的统一文案。响应码与原 errs.New(0,...) 经 Recover 回落 500 一致。
@@ -247,8 +254,9 @@ func (w *cryptoWriter) discardAndFail(header string) {
 	h := w.ResponseWriter.Header()
 	h.Del(header) // 密钥头必须撤掉：响应体已不是用它加密的
 	h.Set("Content-Type", "application/json; charset=utf-8")
-	body := fmt.Sprintf(`{"code":%d,"msg":"%s","data":null}`, 500, "响应加密失败")
+	// 此处拿不到 gin.Context（已在 ResponseWriter 层），故自行 marshal 并重算长度。
+	body, _ := json.Marshal(failBody{Code: 500, Msg: "响应加密失败"})
 	h.Set("Content-Length", strconv.Itoa(len(body)))
 	w.ResponseWriter.WriteHeader(http.StatusOK)
-	_, _ = w.ResponseWriter.Write([]byte(body))
+	_, _ = w.ResponseWriter.Write(body)
 }

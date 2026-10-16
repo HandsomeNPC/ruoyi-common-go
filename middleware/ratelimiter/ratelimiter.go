@@ -19,6 +19,14 @@ import (
 // 就地定义避免引 ruoyi-core/model/response 包。
 const codeFail = 500
 
+// failBody 失败响应体，形态同 ruoyi-core/model/response.R（Data 恒为 null）。
+// 用结构体而非 fmt 拼串：message 可由调用方自定义，含引号时拼串会产出非法 JSON。
+type failBody struct {
+	Code int    `json:"code"`
+	Msg  string `json:"msg"`
+	Data any    `json:"data"`
+}
+
 // rateLimitKey 限流缓存键前缀。"global:" 前缀沿用全局 redis key 约定。
 const rateLimitKey = "global:rate_limit:"
 
