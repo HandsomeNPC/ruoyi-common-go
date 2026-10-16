@@ -6,38 +6,45 @@ import (
 	"github.com/mojocn/base64Captcha"
 )
 
-// 图片渲染参数。
-// 按 CaptchaConfig 的设计固定写死，不做配置项。
-const (
-	imgWidth  = 160 // 图片宽度(像素)
-	imgHeight = 60  // 图片高度(像素)
+// newDriver 按配置构造绘图驱动。
+//
+// 入参须是 normalize 补全并 validate 通过的配置：本函数不再兜空值，
+// 也不复查字体名/画布尺寸等（库对这些是 panic 而非回 error，校验必须前置）。
+// 四类驱动都自带 GenerateIdQuestionAnswer 出题、DrawCaptcha 画图，
+// 故本包不必自存类型/位数，Init 后驱动即自洽。
+func newDriver(cfg CaptchaConfig) (base64Captcha.Driver, error) {
+	img := cfg.Image
+	bg, err := parseHexColor(img.BgColor)
+	if err != nil {
+		return nil, fmt.Errorf("captchahelper: 背景色不合法: %w", err)
+	}
 
-	// noiseCount 背景干扰字符数。
-	noiseCount = 0
-	// showLineOptions 干扰线：只开细直线。
-	// 库里另两种(空心线/正弦线)会把字符压得看不清——base64Captcha 源码自己都注了
-	// "波浪线 比较丑"，实测 hollow|sine 组合基本不可读，故只保留细直线。
-	showLineOptions = base64Captcha.OptionShowSlimeLine
-)
-
-// charSource 字符验证码取值集合，去掉了易混淆的 0/O/1/l/I。
-const charSource = "234567890abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ"
-
-// newDriver 按类型构造绘图驱动。
-// math/char 两类驱动都自带 GenerateIdQuestionAnswer 出题、DrawCaptcha 画图，
-// 本包不再自存类型/位数，Init 后驱动即自洽。
-func newDriver(typ string, charLength int) (base64Captcha.Driver, error) {
-	switch typ {
+	switch cfg.Type {
 	case CaptchaTypeMath:
-		// 算术题(操作数范围、运算符)由 DriverMath.GenerateIdQuestionAnswer 内置，
-		// 与原项目对齐，本包不再自行生成。
+		// 算术题的运算符与操作数范围由 DriverMath 内置(+ - x，加法 0-19/乘法 0-9/
+		// 减法被减数 0-99)，库未开放配置，与原项目行为一致。
 		return base64Captcha.NewDriverMath(
-			imgHeight, imgWidth, noiseCount, showLineOptions, nil, nil, nil), nil
+			img.Height, img.Width, img.NoiseCount, img.lineMask(),
+			bg, nil, img.Fonts), nil
+
 	case CaptchaTypeChar:
 		return base64Captcha.NewDriverString(
-			imgHeight, imgWidth, noiseCount, showLineOptions,
-			charLength, charSource, nil, nil, nil), nil
+			img.Height, img.Width, img.NoiseCount, img.lineMask(),
+			cfg.CharLength, cfg.Char.Source, bg, nil, img.Fonts), nil
+
+	case CaptchaTypeDigit:
+		// 点阵渲染器，只认宽高 + 位数 + 倾斜 + 圆点数；
+		// 噪点/干扰线/背景色/字体对它无效（库里压根不读）。
+		return base64Captcha.NewDriverDigit(
+			img.Height, img.Width, cfg.NumberLength,
+			cfg.Digit.MaxSkew, cfg.Digit.DotCount), nil
+
+	case CaptchaTypeChinese:
+		return base64Captcha.NewDriverChinese(
+			img.Height, img.Width, img.NoiseCount, img.lineMask(),
+			cfg.Chinese.Length, cfg.Chinese.Source, bg, nil, img.Fonts), nil
+
 	default:
-		return nil, fmt.Errorf("captchahelper: 未知验证码类型 %q", typ)
+		return nil, fmt.Errorf("captchahelper: 未知验证码类型 %q", cfg.Type)
 	}
 }
