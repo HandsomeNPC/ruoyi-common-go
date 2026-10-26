@@ -35,13 +35,22 @@ type GetObjectResult struct {
 
 // Client 单个对象存储配置对应的 S3 客户端。
 //
-// 由 Instance/InstanceDefault 按 configKey 取用，不要自行构造：
+// 存在 sys_oss_config 里的配置一律经 GetS3Client/GetDefaultS3Client 取用：
 // 工厂负责按配置变化重建，绕过它拿到的客户端不会随配置更新。
+// 配置不在库里（如写在业务模块自己的 yaml）时才用 NewClient 自行构造。
 type Client struct {
 	configKey string
 	cfg       ClientConfig
 	s3        *s3.Client
 	presign   *s3.PresignClient
+}
+
+// NewClient 按 Properties 直接构造客户端，不经 sys_oss_config 缓存，也不进工厂的客户端缓存。
+//
+// 供配置不落 sys_oss_config 的场景：调用方自己持有并复用返回的客户端
+// （建客户端要建连接池，不要每次请求都调）。配置变更不会自动生效，须重建。
+func NewClient(configKey string, p Properties) (*Client, error) {
+	return newClient(configKey, NewClientConfig(p))
 }
 
 // newClient 按配置建 S3 客户端。

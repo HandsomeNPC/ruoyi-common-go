@@ -184,3 +184,54 @@ func lastSegmentExt(key string) string {
 	}
 	return ""
 }
+
+// TestNewClient 导出构造器与工厂共用同一套推导和校验：缺必填项照样报错，
+// 构出的客户端不进工厂缓存（否则会被 GetS3Client 按 configKey 误取到）。
+func TestNewClient(t *testing.T) {
+	if _, err := NewClient("yaml", Properties{Endpoint: "127.0.0.1:9000"}); err == nil {
+		t.Error("缺 bucket/密钥时应报错")
+	}
+
+	c, err := NewClient("yaml", Properties{
+		Endpoint:     "oss-cn-beijing.aliyuncs.com",
+		BucketName:   "b",
+		AccessKey:    "ak",
+		SecretKey:    "sk",
+		IsHttps:      "Y",
+		AccessPolicy: AccessPolicyPrivate,
+	})
+	if err != nil {
+		t.Fatalf("NewClient: %v", err)
+	}
+	if c.ConfigKey() != "yaml" || !c.IsPrivate() || c.Config().UsePathStyle {
+		t.Errorf("配置推导不符: key=%q private=%v pathStyle=%v",
+			c.ConfigKey(), c.IsPrivate(), c.Config().UsePathStyle)
+	}
+
+	clientsMu.Lock()
+	_, cached := clients["yaml"]
+	clientsMu.Unlock()
+	if cached {
+		t.Error("NewClient 不应写入工厂缓存")
+	}
+}
+
+// TestNewClientPresignOffline 预签名是纯本地计算，不连网也能签出带过期参数的地址。
+// 桶名须合 DNS 规则（≥3 字符）：否则 SDK 静默退回路径寻址，虚拟主机配置不生效。
+func TestNewClientPresignOffline(t *testing.T) {
+	c, err := NewClient("yaml", Properties{
+		Endpoint: "oss-cn-beijing.aliyuncs.com", BucketName: "ai-chat",
+		AccessKey: "ak", SecretKey: "sk", IsHttps: "Y", AccessPolicy: AccessPolicyPrivate,
+	})
+	if err != nil {
+		t.Fatalf("NewClient: %v", err)
+	}
+	url, err := c.PresignGetURL(t.Context(), "2026/10/26/x.png", 5*time.Minute)
+	if err != nil {
+		t.Fatalf("PresignGetURL: %v", err)
+	}
+	if !strings.HasPrefix(url, "https://ai-chat.oss-cn-beijing.aliyuncs.com/2026/10/26/x.png?") ||
+		!strings.Contains(url, "X-Amz-Expires=300") {
+		t.Errorf("预签名地址不符: %s", url)
+	}
+}
